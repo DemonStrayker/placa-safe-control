@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 export interface User {
@@ -238,11 +237,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateTransportadoraMaxPlates = (id: string, maxPlates: number) => {
+    // Update transportadoras list
     const updatedTransportadoras = transportadoras.map(t => 
       t.id === id ? { ...t, maxPlates } : t
     );
     setTransportadoras(updatedTransportadoras);
     saveToStorage('transportadoras', updatedTransportadoras);
+    
+    // Update current user if they are the one being modified
+    if (user && user.id === id) {
+      const updatedUser = { ...user, maxPlates };
+      setUser(updatedUser);
+      saveToStorage('user', updatedUser);
+    }
+    
+    // Update mockUsers array for future logins
+    const userIndex = mockUsers.findIndex(u => u.id === id);
+    if (userIndex !== -1) {
+      mockUsers[userIndex] = { ...mockUsers[userIndex], maxPlates };
+    }
   };
 
   return (
