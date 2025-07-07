@@ -109,6 +109,10 @@ const LoginForm = () => {
                   <Truck className="w-3 h-3" />
                   <span>Transportadora: transportadora2 / trans456</span>
                 </div>
+                <div className="flex items-center gap-2">
+                  <Shield className="w-3 h-3" />
+                  <span>Portaria: portaria / portaria123</span>
+                </div>
               </div>
             </div>
           </CardContent>

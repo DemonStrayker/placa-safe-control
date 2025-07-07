@@ -1,4 +1,112 @@
-# Welcome to your Lovable project
+# Sistema de Gestão de Placas
+
+Sistema web para gestão de placas de veículos com múltiplos tipos de usuário: administrador, transportadoras e portaria.
+
+## Funcionalidades
+
+### Administrador
+- Gerenciar configurações do sistema (limites, horários, dias permitidos)
+- Visualizar todas as placas cadastradas
+- Gerenciar transportadoras (adicionar, remover, definir limites)
+- Controle total do sistema
+
+### Transportadoras
+- Cadastrar placas de veículos
+- Visualizar suas próprias placas
+- Remover placas cadastradas
+- Respeitar limites e horários configurados
+
+### Portaria
+- Visualizar todas as placas cadastradas no sistema
+- Confirmar chegada de veículos
+- Confirmar saída de veículos (apenas após chegada confirmada)
+- Filtrar placas por status (pendente, presente, saiu)
+- Buscar por placa ou transportadora
+
+## Credenciais de Acesso
+
+### Administrador
+- Usuário: `admin`
+- Senha: `admin123`
+
+### Transportadoras
+- Usuário: `transportadora1` / Senha: `trans123`
+- Usuário: `transportadora2` / Senha: `trans456`
+
+### Portaria
+- Usuário: `portaria`
+- Senha: `portaria123`
+
+## Como Usar
+
+### Configuração do Sistema (Admin)
+1. Faça login com as credenciais de administrador
+2. Configure os limites de placas (total do sistema e por transportadora)
+3. Defina horários e dias permitidos para cadastro
+4. Gerencie transportadoras conforme necessário
+
+### Cadastro de Placas (Transportadoras)
+1. Faça login com as credenciais da transportadora
+2. Use o formulário para adicionar novas placas
+3. Formatos aceitos: ABC-1234 ou ABC1D23
+4. Respeite os limites e horários configurados
+
+### Controle de Portaria
+1. Faça login com as credenciais da portaria
+2. Visualize todas as placas cadastradas
+3. Use os filtros para organizar por status
+4. Confirme chegadas e saídas conforme os veículos chegam
+5. A saída só pode ser confirmada após a chegada
+
+## Status das Placas
+
+- **Pendente**: Placa cadastrada, aguardando chegada
+- **Presente**: Chegada confirmada, veículo no local
+- **Saiu**: Saída confirmada, processo finalizado
+
+## Validações de Segurança
+
+- Apenas portaria pode confirmar chegadas/saídas
+- Saída só é permitida após confirmação de chegada
+- Confirmações são imutáveis (não podem ser editadas)
+- Cada tipo de usuário tem acesso apenas às suas funcionalidades
+- Dados são armazenados localmente no navegador
+
+## Estrutura de Dados
+
+### Usuário
+```typescript
+interface User {
+  id: string;
+  username: string;
+  type: 'admin' | 'transportadora' | 'portaria';
+  name: string;
+  maxPlates?: number;
+}
+```
+
+### Placa
+```typescript
+interface Plate {
+  id: string;
+  number: string;
+  transportadoraId: string;
+  createdAt: Date;
+  transportadoraName: string;
+  arrivalConfirmed?: Date;
+  departureConfirmed?: Date;
+}
+```
+
+### Configuração do Sistema
+```typescript
+interface SystemConfig {
+  maxTotalPlates: number;
+  maxPlatesPerTransportadora: number;
+  allowedHours: { start: string; end: string };
+  allowedDays: number[]; // 0-6 (Domingo-Sábado)
+}
+```
 
 ## Project info
 

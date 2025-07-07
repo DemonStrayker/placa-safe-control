@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import LoginForm from '@/components/LoginForm';
 import TransportadoraDashboard from '@/components/TransportadoraDashboard';
 import AdminDashboard from '@/components/AdminDashboard';
+import PortariaDashboard from '@/components/PortariaDashboard';
 
 const Index = () => {
   const { user } = useAuth();
@@ -16,6 +17,10 @@ const Index = () => {
   // Show appropriate dashboard based on user type
   if (user.type === 'admin') {
     return <AdminDashboard />;
+  }
+
+  if (user.type === 'portaria') {
+    return <PortariaDashboard />;
   }
 
   return <TransportadoraDashboard />;

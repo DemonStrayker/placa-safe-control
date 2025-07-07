@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 export interface User {
   id: string;
   username: string;
-  type: 'admin' | 'transportadora';
+  type: 'admin' | 'transportadora' | 'portaria';
   name: string;
   maxPlates?: number;
 }
@@ -14,6 +14,8 @@ export interface Plate {
   transportadoraId: string;
   createdAt: Date;
   transportadoraName: string;
+  arrivalConfirmed?: Date;
+  departureConfirmed?: Date;
 }
 
 export interface SystemConfig {
@@ -31,6 +33,8 @@ interface AuthContextType {
   addPlate: (plateNumber: string) => Promise<boolean>;
   removePlate: (plateId: string) => void;
   getAllPlates: () => Plate[];
+  confirmArrival: (plateId: string) => Promise<boolean>;
+  confirmDeparture: (plateId: string) => Promise<boolean>;
   systemConfig: SystemConfig;
   updateSystemConfig: (config: SystemConfig) => void;
   transportadoras: User[];
@@ -46,12 +50,14 @@ const mockUsers: User[] = [
   { id: '1', username: 'admin', type: 'admin', name: 'Administrador' },
   { id: '2', username: 'transportadora1', type: 'transportadora', name: 'Transportes ABC', maxPlates: 5 },
   { id: '3', username: 'transportadora2', type: 'transportadora', name: 'Logística XYZ', maxPlates: 3 },
+  { id: '4', username: 'portaria', type: 'portaria', name: 'Portaria Principal' },
 ];
 
 const mockPasswords: { [key: string]: string } = {
   'admin': 'admin123',
   'transportadora1': 'trans123',
   'transportadora2': 'trans456',
+  'portaria': 'portaria123',
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -191,10 +197,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const getAllPlates = (): Plate[] => {
-    if (user?.type === 'admin') {
+    if (user?.type === 'admin' || user?.type === 'portaria') {
       return plates;
     }
     return plates.filter(p => p.transportadoraId === user?.id);
+  };
+
+  const confirmArrival = async (plateId: string): Promise<boolean> => {
+    if (!user || user.type !== 'portaria') return false;
+
+    const updatedPlates = plates.map(p => 
+      p.id === plateId ? { ...p, arrivalConfirmed: new Date() } : p
+    );
+    
+    setPlates(updatedPlates);
+    saveToStorage('plates', updatedPlates);
+    return true;
+  };
+
+  const confirmDeparture = async (plateId: string): Promise<boolean> => {
+    if (!user || user.type !== 'portaria') return false;
+
+    const plate = plates.find(p => p.id === plateId);
+    if (!plate || !plate.arrivalConfirmed) {
+      throw new Error('Confirmação de chegada é necessária antes da saída');
+    }
+
+    const updatedPlates = plates.map(p => 
+      p.id === plateId ? { ...p, departureConfirmed: new Date() } : p
+    );
+    
+    setPlates(updatedPlates);
+    saveToStorage('plates', updatedPlates);
+    return true;
   };
 
   const updateSystemConfig = (config: SystemConfig) => {
@@ -267,6 +302,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       addPlate,
       removePlate,
       getAllPlates,
+      confirmArrival,
+      confirmDeparture,
       systemConfig,
       updateSystemConfig,
       transportadoras,
