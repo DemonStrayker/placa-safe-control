@@ -15,7 +15,6 @@ import {
   Settings, 
   Users, 
   Truck, 
-  Plus, 
   Trash2,
   Download,
   Clock,
@@ -33,20 +32,11 @@ const AdminDashboard = () => {
     removePlate, 
     systemConfig, 
     updateSystemConfig,
-    transportadoras,
-    addTransportadora,
-    removeTransportadora,
-    updateTransportadoraMaxPlates
+    transportadoras
   } = useAuth();
 
-  const [newTransportadora, setNewTransportadora] = useState({
-    username: '',
-    password: '',
-    name: ''
-  });
   const [filterTransportadora, setFilterTransportadora] = useState('all');
   const [filterDate, setFilterDate] = useState('');
-  const [loading, setLoading] = useState(false);
 
   const allPlates = getAllPlates();
 
@@ -61,33 +51,6 @@ const AdminDashboard = () => {
     return true;
   });
 
-  const handleAddTransportadora = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newTransportadora.username || !newTransportadora.password || !newTransportadora.name) {
-      toast.error('Preencha todos os campos');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      await addTransportadora(
-        newTransportadora.username,
-        newTransportadora.password,
-        newTransportadora.name
-      );
-      setNewTransportadora({ username: '', password: '', name: '' });
-      toast.success('Transportadora adicionada com sucesso!');
-    } catch (error: any) {
-      toast.error(error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleRemoveTransportadora = (id: string) => {
-    removeTransportadora(id);
-    toast.success('Transportadora removida com sucesso!');
-  };
 
   const handleConfigUpdate = (field: string, value: any) => {
     updateSystemConfig({
@@ -216,7 +179,7 @@ const AdminDashboard = () => {
 
         {/* Main Content */}
         <Tabs defaultValue="reports" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="reports" className="flex items-center gap-2">
               <FileText className="w-4 h-4" />
               Relatórios
@@ -224,10 +187,6 @@ const AdminDashboard = () => {
             <TabsTrigger value="users" className="flex items-center gap-2">
               <UserCog className="w-4 h-4" />
               Usuários
-            </TabsTrigger>
-            <TabsTrigger value="transportadoras" className="flex items-center gap-2">
-              <Users className="w-4 h-4" />
-              Transportadoras
             </TabsTrigger>
             <TabsTrigger value="settings" className="flex items-center gap-2">
               <Settings className="w-4 h-4" />
@@ -328,115 +287,6 @@ const AdminDashboard = () => {
             <UserManagement />
           </TabsContent>
 
-          {/* Transportadoras Tab */}
-          <TabsContent value="transportadoras">
-            <div className="space-y-6">
-              {/* Add New Transportadora */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Plus className="w-5 h-5" />
-                    Adicionar Transportadora
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <form onSubmit={handleAddTransportadora} className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div>
-                      <Label>Usuário</Label>
-                      <Input
-                        value={newTransportadora.username}
-                        onChange={(e) => setNewTransportadora(prev => ({
-                          ...prev,
-                          username: e.target.value
-                        }))}
-                        placeholder="usuario"
-                      />
-                    </div>
-                    <div>
-                      <Label>Senha</Label>
-                      <Input
-                        type="password"
-                        value={newTransportadora.password}
-                        onChange={(e) => setNewTransportadora(prev => ({
-                          ...prev,
-                          password: e.target.value
-                        }))}
-                        placeholder="senha123"
-                      />
-                    </div>
-                    <div>
-                      <Label>Nome</Label>
-                      <Input
-                        value={newTransportadora.name}
-                        onChange={(e) => setNewTransportadora(prev => ({
-                          ...prev,
-                          name: e.target.value
-                        }))}
-                        placeholder="Nome da Empresa"
-                      />
-                    </div>
-                    <div className="flex items-end">
-                      <Button type="submit" disabled={loading} className="w-full">
-                        {loading ? 'Adicionando...' : 'Adicionar'}
-                      </Button>
-                    </div>
-                  </form>
-                </CardContent>
-              </Card>
-
-              {/* Transportadoras List */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Transportadoras Cadastradas</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {transportadoras.map((transportadora, index) => (
-                      <div
-                        key={transportadora.id}
-                        className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border animate-fade-in"
-                        style={{ animationDelay: `${index * 0.1}s` }}
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className="p-2 bg-transport-100 rounded-lg">
-                            <Truck className="w-5 h-5 text-transport-600" />
-                          </div>
-                          <div>
-                            <p className="font-medium text-gray-900">{transportadora.name}</p>
-                            <p className="text-sm text-gray-600">@{transportadora.username}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <div className="text-right">
-                            <Label className="text-xs">Limite de Placas</Label>
-                            <Input
-                              type="number"
-                              value={transportadora.maxPlates || 0}
-                              onChange={(e) => updateTransportadoraMaxPlates(
-                                transportadora.id,
-                                parseInt(e.target.value) || 0
-                              )}
-                              className="w-20 text-center"
-                              min="0"
-                              max="50"
-                            />
-                          </div>
-                          <Button
-                            onClick={() => handleRemoveTransportadora(transportadora.id)}
-                            variant="outline"
-                            size="sm"
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
 
           {/* Settings Tab */}
           <TabsContent value="settings">
