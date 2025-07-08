@@ -91,7 +91,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     if (savedPlates) {
       const parsedPlates = JSON.parse(savedPlates);
-      setPlates(parsedPlates.map((p: any) => ({ ...p, createdAt: new Date(p.createdAt) })));
+      setPlates(parsedPlates.map((p: any) => ({ 
+        ...p, 
+        createdAt: new Date(p.createdAt),
+        arrivalConfirmed: p.arrivalConfirmed ? new Date(p.arrivalConfirmed) : undefined,
+        departureConfirmed: p.departureConfirmed ? new Date(p.departureConfirmed) : undefined
+      })));
     }
     if (savedConfig) {
       setSystemConfig(JSON.parse(savedConfig));
