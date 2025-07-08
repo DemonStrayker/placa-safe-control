@@ -19,9 +19,11 @@ import {
   Trash2,
   Download,
   Clock,
-  Calendar
+  Calendar,
+  UserCog
 } from 'lucide-react';
 import { toast } from 'sonner';
+import UserManagement from '@/components/UserManagement';
 
 const AdminDashboard = () => {
   const { 
@@ -214,10 +216,14 @@ const AdminDashboard = () => {
 
         {/* Main Content */}
         <Tabs defaultValue="reports" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="reports" className="flex items-center gap-2">
               <FileText className="w-4 h-4" />
               Relatórios
+            </TabsTrigger>
+            <TabsTrigger value="users" className="flex items-center gap-2">
+              <UserCog className="w-4 h-4" />
+              Usuários
             </TabsTrigger>
             <TabsTrigger value="transportadoras" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
@@ -315,6 +321,11 @@ const AdminDashboard = () => {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Users Management Tab */}
+          <TabsContent value="users">
+            <UserManagement />
           </TabsContent>
 
           {/* Transportadoras Tab */}

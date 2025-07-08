@@ -41,19 +41,25 @@ interface AuthContextType {
   addTransportadora: (username: string, password: string, name: string) => Promise<boolean>;
   removeTransportadora: (id: string) => void;
   updateTransportadoraMaxPlates: (id: string, maxPlates: number) => void;
+  // Admin user management functions
+  allUsers: User[];
+  addUser: (username: string, password: string, name: string, type: 'admin' | 'transportadora' | 'portaria', maxPlates?: number) => Promise<boolean>;
+  updateUser: (id: string, updates: Partial<User>) => Promise<boolean>;
+  updateUserPassword: (id: string, password: string) => Promise<boolean>;
+  removeUser: (id: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Mock data
-const mockUsers: User[] = [
+// Default users - only used for initial setup if no users exist
+const defaultUsers: User[] = [
   { id: '1', username: 'admin', type: 'admin', name: 'Administrador' },
   { id: '2', username: 'transportadora1', type: 'transportadora', name: 'Transportes ABC', maxPlates: 5 },
   { id: '3', username: 'transportadora2', type: 'transportadora', name: 'Logística XYZ', maxPlates: 3 },
   { id: '4', username: 'portaria', type: 'portaria', name: 'Portaria Principal' },
 ];
 
-const mockPasswords: { [key: string]: string } = {
+const defaultPasswords: { [key: string]: string } = {
   'admin': 'admin123',
   'transportadora1': 'trans123',
   'transportadora2': 'trans456',
@@ -63,7 +69,8 @@ const mockPasswords: { [key: string]: string } = {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [plates, setPlates] = useState<Plate[]>([]);
-  const [transportadoras, setTransportadoras] = useState<User[]>(mockUsers.filter(u => u.type === 'transportadora'));
+  const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [passwords, setPasswords] = useState<{ [key: string]: string }>({});
   const [systemConfig, setSystemConfig] = useState<SystemConfig>({
     maxTotalPlates: 50,
     maxPlatesPerTransportadora: 10,
@@ -76,7 +83,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const savedUser = localStorage.getItem('user');
     const savedPlates = localStorage.getItem('plates');
     const savedConfig = localStorage.getItem('systemConfig');
-    const savedTransportadoras = localStorage.getItem('transportadoras');
+    const savedAllUsers = localStorage.getItem('allUsers');
+    const savedPasswords = localStorage.getItem('passwords');
 
     if (savedUser) {
       setUser(JSON.parse(savedUser));
@@ -88,8 +96,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (savedConfig) {
       setSystemConfig(JSON.parse(savedConfig));
     }
-    if (savedTransportadoras) {
-      setTransportadoras(JSON.parse(savedTransportadoras));
+    
+    // Initialize users and passwords from localStorage or defaults
+    if (savedAllUsers && savedPasswords) {
+      setAllUsers(JSON.parse(savedAllUsers));
+      setPasswords(JSON.parse(savedPasswords));
+    } else {
+      // First time setup - use default users and passwords
+      setAllUsers(defaultUsers);
+      setPasswords(defaultPasswords);
+      saveToStorage('allUsers', defaultUsers);
+      saveToStorage('passwords', defaultPasswords);
     }
   }, []);
 
@@ -98,9 +115,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const login = async (username: string, password: string): Promise<boolean> => {
-    const foundUser = [...mockUsers, ...transportadoras].find(u => u.username === username);
+    const foundUser = allUsers.find(u => u.username === username);
     
-    if (foundUser && mockPasswords[username] === password) {
+    if (foundUser && passwords[username] === password) {
       setUser(foundUser);
       saveToStorage('user', foundUser);
       return true;
@@ -237,61 +254,123 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     saveToStorage('systemConfig', config);
   };
 
+  // Legacy transportadora functions for backward compatibility
   const addTransportadora = async (username: string, password: string, name: string): Promise<boolean> => {
-    if (transportadoras.some(t => t.username === username)) {
+    return addUser(username, password, name, 'transportadora', systemConfig.maxPlatesPerTransportadora);
+  };
+
+  const removeTransportadora = (id: string) => {
+    removeUser(id);
+  };
+
+  const updateTransportadoraMaxPlates = (id: string, maxPlates: number) => {
+    updateUser(id, { maxPlates });
+  };
+
+  // New admin user management functions
+  const addUser = async (username: string, password: string, name: string, type: 'admin' | 'transportadora' | 'portaria', maxPlates?: number): Promise<boolean> => {
+    if (!user || user.type !== 'admin') {
+      throw new Error('Apenas administradores podem gerenciar usuários');
+    }
+
+    if (allUsers.some(u => u.username === username)) {
       throw new Error('Nome de usuário já existe');
     }
 
-    const newTransportadora: User = {
+    const newUser: User = {
       id: Date.now().toString(),
       username,
-      type: 'transportadora',
+      type,
       name,
-      maxPlates: systemConfig.maxPlatesPerTransportadora,
+      maxPlates: type === 'transportadora' ? (maxPlates || systemConfig.maxPlatesPerTransportadora) : undefined,
     };
 
-    const updatedTransportadoras = [...transportadoras, newTransportadora];
-    setTransportadoras(updatedTransportadoras);
-    saveToStorage('transportadoras', updatedTransportadoras);
+    const updatedUsers = [...allUsers, newUser];
+    const updatedPasswords = { ...passwords, [username]: password };
     
-    // Add password to mock passwords
-    mockPasswords[username] = password;
+    setAllUsers(updatedUsers);
+    setPasswords(updatedPasswords);
+    saveToStorage('allUsers', updatedUsers);
+    saveToStorage('passwords', updatedPasswords);
     
     return true;
   };
 
-  const removeTransportadora = (id: string) => {
-    const updatedTransportadoras = transportadoras.filter(t => t.id !== id);
-    setTransportadoras(updatedTransportadoras);
-    saveToStorage('transportadoras', updatedTransportadoras);
-    
-    // Remove associated plates
-    const updatedPlates = plates.filter(p => p.transportadoraId !== id);
-    setPlates(updatedPlates);
-    saveToStorage('plates', updatedPlates);
-  };
+  const updateUser = async (id: string, updates: Partial<User>): Promise<boolean> => {
+    if (!user || user.type !== 'admin') {
+      throw new Error('Apenas administradores podem gerenciar usuários');
+    }
 
-  const updateTransportadoraMaxPlates = (id: string, maxPlates: number) => {
-    // Update transportadoras list
-    const updatedTransportadoras = transportadoras.map(t => 
-      t.id === id ? { ...t, maxPlates } : t
+    const updatedUsers = allUsers.map(u => 
+      u.id === id ? { ...u, ...updates } : u
     );
-    setTransportadoras(updatedTransportadoras);
-    saveToStorage('transportadoras', updatedTransportadoras);
+    
+    setAllUsers(updatedUsers);
+    saveToStorage('allUsers', updatedUsers);
     
     // Update current user if they are the one being modified
-    if (user && user.id === id) {
-      const updatedUser = { ...user, maxPlates };
-      setUser(updatedUser);
-      saveToStorage('user', updatedUser);
+    if (user.id === id) {
+      const updatedCurrentUser = { ...user, ...updates };
+      setUser(updatedCurrentUser);
+      saveToStorage('user', updatedCurrentUser);
     }
     
-    // Update mockUsers array for future logins
-    const userIndex = mockUsers.findIndex(u => u.id === id);
-    if (userIndex !== -1) {
-      mockUsers[userIndex] = { ...mockUsers[userIndex], maxPlates };
-    }
+    return true;
   };
+
+  const updateUserPassword = async (id: string, password: string): Promise<boolean> => {
+    if (!user || user.type !== 'admin') {
+      throw new Error('Apenas administradores podem gerenciar usuários');
+    }
+
+    const targetUser = allUsers.find(u => u.id === id);
+    if (!targetUser) {
+      throw new Error('Usuário não encontrado');
+    }
+
+    const updatedPasswords = { ...passwords, [targetUser.username]: password };
+    setPasswords(updatedPasswords);
+    saveToStorage('passwords', updatedPasswords);
+    
+    return true;
+  };
+
+  const removeUser = async (id: string): Promise<boolean> => {
+    if (!user || user.type !== 'admin') {
+      throw new Error('Apenas administradores podem gerenciar usuários');
+    }
+
+    const userToRemove = allUsers.find(u => u.id === id);
+    if (!userToRemove) {
+      throw new Error('Usuário não encontrado');
+    }
+
+    // Don't allow removing the current admin user
+    if (userToRemove.id === user.id) {
+      throw new Error('Não é possível remover o usuário atual');
+    }
+
+    const updatedUsers = allUsers.filter(u => u.id !== id);
+    const updatedPasswords = { ...passwords };
+    delete updatedPasswords[userToRemove.username];
+    
+    setAllUsers(updatedUsers);
+    setPasswords(updatedPasswords);
+    saveToStorage('allUsers', updatedUsers);
+    saveToStorage('passwords', updatedPasswords);
+    
+    // Remove associated plates if it's a transportadora
+    if (userToRemove.type === 'transportadora') {
+      const updatedPlates = plates.filter(p => p.transportadoraId !== id);
+      setPlates(updatedPlates);
+      saveToStorage('plates', updatedPlates);
+    }
+    
+    return true;
+  };
+
+  // Get transportadoras for backward compatibility
+  const transportadoras = allUsers.filter(u => u.type === 'transportadora');
 
   return (
     <AuthContext.Provider value={{
@@ -310,6 +389,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       addTransportadora,
       removeTransportadora,
       updateTransportadoraMaxPlates,
+      allUsers,
+      addUser,
+      updateUser,
+      updateUserPassword,
+      removeUser,
     }}>
       {children}
     </AuthContext.Provider>
