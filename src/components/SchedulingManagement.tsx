@@ -1,14 +1,20 @@
 import React, { useState } from 'react';
-import { useAuth, SchedulingWindow } from '@/contexts/AuthContext';
+import { useAuth, SchedulingWindow, SystemConfig } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Calendar, Plus, Pencil, Trash2, Clock } from 'lucide-react';
+import { Calendar, Plus, Pencil, Trash2, Clock, Settings } from 'lucide-react';
 import { toast } from 'sonner';
+
+interface SchedulingManagementProps {
+  systemConfig: SystemConfig;
+  updateSystemConfig: (config: SystemConfig) => void;
+}
 
 interface SchedulingFormData {
   startDate: string;
@@ -18,7 +24,10 @@ interface SchedulingFormData {
   isActive: boolean;
 }
 
-const SchedulingManagement = () => {
+const SchedulingManagement: React.FC<SchedulingManagementProps> = ({
+  systemConfig,
+  updateSystemConfig
+}) => {
   const { 
     schedulingWindows, 
     addSchedulingWindow, 
@@ -118,18 +127,101 @@ const SchedulingManagement = () => {
     }
   };
 
+  const handleConfigUpdate = (field: string, value: any) => {
+    updateSystemConfig({
+      ...systemConfig,
+      [field]: value
+    });
+    toast.success('Configuração atualizada!');
+  };
+
+  const getDayName = (dayIndex: number) => {
+    const days = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+    return days[dayIndex];
+  };
+
   return (
     <div className="space-y-6">
+      {/* Global Time and Day Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Settings className="w-5 h-5" />
+            Configurações Globais de Horário
+          </CardTitle>
+          <CardDescription>
+            Configure os horários e dias permitidos para cadastro de placas (aplicado globalmente)
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Horário Inicial</Label>
+              <Input
+                type="time"
+                value={systemConfig.allowedHours.start}
+                onChange={(e) => handleConfigUpdate('allowedHours', {
+                  ...systemConfig.allowedHours,
+                  start: e.target.value
+                })}
+              />
+            </div>
+            <div>
+              <Label>Horário Final</Label>
+              <Input
+                type="time"
+                value={systemConfig.allowedHours.end}
+                onChange={(e) => handleConfigUpdate('allowedHours', {
+                  ...systemConfig.allowedHours,
+                  end: e.target.value
+                })}
+              />
+            </div>
+          </div>
+          
+          <div>
+            <Label className="text-base font-medium">Dias Permitidos</Label>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
+              {[0, 1, 2, 3, 4, 5, 6].map((day) => (
+                <div key={day} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`day-${day}`}
+                    checked={systemConfig.allowedDays.includes(day)}
+                    onCheckedChange={(checked) => {
+                      const newDays = checked
+                        ? [...systemConfig.allowedDays, day]
+                        : systemConfig.allowedDays.filter(d => d !== day);
+                      handleConfigUpdate('allowedDays', newDays.sort());
+                    }}
+                  />
+                  <Label htmlFor={`day-${day}`} className="text-sm">
+                    {getDayName(day)}
+                  </Label>
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
+            <p className="text-sm text-amber-700">
+              <strong>Configurações Globais:</strong> Estas configurações se aplicam a todo o sistema. 
+              As janelas de agendamento abaixo permitem definir períodos específicos adicionais.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Scheduling Windows */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Calendar className="w-5 h-5" />
-                Gerenciar Janelas de Agendamento
+                Janelas de Agendamento Específicas
               </CardTitle>
               <CardDescription>
-                Configure os períodos permitidos para agendamento de carregamento
+                Configure períodos específicos para agendamento de carregamento (opcional)
               </CardDescription>
             </div>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

@@ -2,12 +2,11 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { SystemConfig, useAuth } from '@/contexts/AuthContext';
 import SchedulingManagement from '@/components/SchedulingManagement';
-import { Settings, CalendarCheck, TrendingUp, Clock } from 'lucide-react';
+import { Settings, CalendarCheck, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface SettingsTabProps {
@@ -29,20 +28,15 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
     toast.success('Configuração atualizada!');
   };
 
-  const getDayName = (dayIndex: number) => {
-    const days = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
-    return days[dayIndex];
-  };
-
   const totalDynamicTrips = getTotalAvailableTrips();
 
   return (
     <div className="space-y-6">
-      <Tabs defaultValue="system" className="w-full">
+      <Tabs defaultValue="general" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="system" className="flex items-center gap-2">
+          <TabsTrigger value="general" className="flex items-center gap-2">
             <Settings className="w-4 h-4" />
-            Sistema
+            Geral
           </TabsTrigger>
           <TabsTrigger value="scheduling" className="flex items-center gap-2">
             <CalendarCheck className="w-4 h-4" />
@@ -54,108 +48,48 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="system" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* General Settings */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Configurações Gerais</CardTitle>
-                <CardDescription>
-                  Configure limites e restrições do sistema
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label>Máximo de Placas por Transportadora (Padrão)</Label>
-                  <Input
-                    type="number"
-                    value={systemConfig.maxPlatesPerTransportadora}
-                    onChange={(e) => handleConfigUpdate('maxPlatesPerTransportadora', parseInt(e.target.value) || 0)}
-                    min="1"
-                    max="100"
-                  />
-                  <p className="text-sm text-gray-600 mt-1">
-                    Valor padrão para novas transportadoras
-                  </p>
+        <TabsContent value="general" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Configurações Gerais</CardTitle>
+              <CardDescription>
+                Configure limites padrão do sistema
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label>Máximo de Placas por Transportadora (Padrão)</Label>
+                <Input
+                  type="number"
+                  value={systemConfig.maxPlatesPerTransportadora}
+                  onChange={(e) => handleConfigUpdate('maxPlatesPerTransportadora', parseInt(e.target.value) || 0)}
+                  min="1"
+                  max="100"
+                />
+                <p className="text-sm text-gray-600 mt-1">
+                  Valor padrão para novas transportadoras
+                </p>
+              </div>
+              
+              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="flex items-center gap-2 mb-2">
+                  <TrendingUp className="w-5 h-5 text-blue-600" />
+                  <span className="font-medium text-blue-900">Total Dinâmico de Viagens</span>
                 </div>
-                
-                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <div className="flex items-center gap-2 mb-2">
-                    <TrendingUp className="w-5 h-5 text-blue-600" />
-                    <span className="font-medium text-blue-900">Total Dinâmico de Viagens</span>
-                  </div>
-                  <p className="text-2xl font-bold text-blue-600">{totalDynamicTrips}</p>
-                  <p className="text-sm text-blue-700">
-                    Calculado automaticamente com base nos limites individuais das transportadoras
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Time Settings */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Clock className="w-5 h-5" />
-                  Configurações de Horário
-                </CardTitle>
-                <CardDescription>
-                  Configure quando o cadastro de placas é permitido
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Horário Inicial</Label>
-                    <Input
-                      type="time"
-                      value={systemConfig.allowedHours.start}
-                      onChange={(e) => handleConfigUpdate('allowedHours', {
-                        ...systemConfig.allowedHours,
-                        start: e.target.value
-                      })}
-                    />
-                  </div>
-                  <div>
-                    <Label>Horário Final</Label>
-                    <Input
-                      type="time"
-                      value={systemConfig.allowedHours.end}
-                      onChange={(e) => handleConfigUpdate('allowedHours', {
-                        ...systemConfig.allowedHours,
-                        end: e.target.value
-                      })}
-                    />
-                  </div>
-                </div>
-                
-                <div>
-                  <Label className="text-base font-medium">Dias Permitidos</Label>
-                  <div className="grid grid-cols-1 gap-2 mt-2">
-                    {[0, 1, 2, 3, 4, 5, 6].map((day) => (
-                      <div key={day} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`day-${day}`}
-                          checked={systemConfig.allowedDays.includes(day)}
-                          onCheckedChange={(checked) => {
-                            const newDays = checked
-                              ? [...systemConfig.allowedDays, day]
-                              : systemConfig.allowedDays.filter(d => d !== day);
-                            handleConfigUpdate('allowedDays', newDays.sort());
-                          }}
-                        />
-                        <Label htmlFor={`day-${day}`}>{getDayName(day)}</Label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                <p className="text-2xl font-bold text-blue-600">{totalDynamicTrips}</p>
+                <p className="text-sm text-blue-700">
+                  Calculado automaticamente com base nos limites individuais das transportadoras
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="scheduling" className="space-y-6">
-          <SchedulingManagement />
+          <SchedulingManagement 
+            systemConfig={systemConfig}
+            updateSystemConfig={updateSystemConfig}
+          />
         </TabsContent>
 
         <TabsContent value="trips" className="space-y-6">
