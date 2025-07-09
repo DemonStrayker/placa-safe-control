@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Shield, LogOut, CheckCircle, XCircle, Clock, ArrowUp, ArrowDown, Search, Filter } from 'lucide-react';
 import { toast } from 'sonner';
+import PDFReport from '@/components/PDFReport';
 
 const PortariaDashboard = () => {
   const { user, logout, getAllPlates, confirmArrival, confirmDeparture } = useAuth();
@@ -212,6 +213,9 @@ const PortariaDashboard = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* PDF Report */}
+        <PDFReport />
 
         {/* Plates Table */}
         <Card>

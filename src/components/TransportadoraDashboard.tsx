@@ -9,8 +9,10 @@ import { Truck, Plus, Trash2, LogOut, Clock, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 
 const TransportadoraDashboard = () => {
-  const { user, logout, addPlate, removePlate, getAllPlates, systemConfig } = useAuth();
+  const { user, logout, addPlate, removePlate, getAllPlates, systemConfig, schedulingWindows } = useAuth();
   const [newPlate, setNewPlate] = useState('');
+  const [scheduledDate, setScheduledDate] = useState('');
+  const [observations, setObservations] = useState('');
   const [loading, setLoading] = useState(false);
   
   const userPlates = getAllPlates();
@@ -22,8 +24,11 @@ const TransportadoraDashboard = () => {
 
     setLoading(true);
     try {
-      await addPlate(newPlate.trim());
+      const schedDate = scheduledDate ? new Date(scheduledDate) : undefined;
+      await addPlate(newPlate.trim(), schedDate, observations.trim() || undefined);
       setNewPlate('');
+      setScheduledDate('');
+      setObservations('');
       toast.success('Placa adicionada com sucesso!');
     } catch (error: any) {
       toast.error(error.message);
@@ -141,18 +146,40 @@ const TransportadoraDashboard = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleAddPlate} className="flex gap-4">
-              <div className="flex-1">
-                <Label htmlFor="plate">Número da Placa</Label>
+            <form onSubmit={handleAddPlate} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="plate">Número da Placa</Label>
+                  <Input
+                    id="plate"
+                    value={newPlate}
+                    onChange={(e) => setNewPlate(e.target.value.toUpperCase())}
+                    placeholder="Ex: ABC-1234 ou ABC1D23"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="scheduledDate">Data de Carregamento (Opcional)</Label>
+                  <Input
+                    id="scheduledDate"
+                    type="datetime-local"
+                    value={scheduledDate}
+                    onChange={(e) => setScheduledDate(e.target.value)}
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <Label htmlFor="observations">Observações (Opcional)</Label>
                 <Input
-                  id="plate"
-                  value={newPlate}
-                  onChange={(e) => setNewPlate(e.target.value.toUpperCase())}
-                  placeholder="Ex: ABC-1234 ou ABC1D23"
-                  className="mt-1"
+                  id="observations"
+                  value={observations}
+                  onChange={(e) => setObservations(e.target.value)}
+                  placeholder="Digite observações sobre a carga..."
                 />
               </div>
-              <div className="flex items-end">
+
+              <div className="flex justify-end">
                 <Button
                   type="submit"
                   disabled={loading || userPlates.length >= maxPlates}

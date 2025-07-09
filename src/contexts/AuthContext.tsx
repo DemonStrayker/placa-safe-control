@@ -16,6 +16,17 @@ export interface Plate {
   transportadoraName: string;
   arrivalConfirmed?: Date;
   departureConfirmed?: Date;
+  scheduledDate?: Date;
+  observations?: string;
+}
+
+export interface SchedulingWindow {
+  id: string;
+  startDate: Date;
+  endDate: Date;
+  startTime: string;
+  endTime: string;
+  isActive: boolean;
 }
 
 export interface SystemConfig {
@@ -30,7 +41,7 @@ interface AuthContextType {
   login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
   plates: Plate[];
-  addPlate: (plateNumber: string) => Promise<boolean>;
+  addPlate: (plateNumber: string, scheduledDate?: Date, observations?: string) => Promise<boolean>;
   removePlate: (plateId: string) => void;
   getAllPlates: () => Plate[];
   confirmArrival: (plateId: string) => Promise<boolean>;
@@ -47,6 +58,13 @@ interface AuthContextType {
   updateUser: (id: string, updates: Partial<User>) => Promise<boolean>;
   updateUserPassword: (id: string, password: string) => Promise<boolean>;
   removeUser: (id: string) => Promise<boolean>;
+  // New features
+  schedulingWindows: SchedulingWindow[];
+  addSchedulingWindow: (window: Omit<SchedulingWindow, 'id'>) => Promise<boolean>;
+  updateSchedulingWindow: (id: string, updates: Partial<SchedulingWindow>) => Promise<boolean>;
+  removeSchedulingWindow: (id: string) => Promise<boolean>;
+  getTotalAvailableTrips: () => number;
+  getPlatesByDate: (date: Date) => Plate[];
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -71,6 +89,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [plates, setPlates] = useState<Plate[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [passwords, setPasswords] = useState<{ [key: string]: string }>({});
+  const [schedulingWindows, setSchedulingWindows] = useState<SchedulingWindow[]>([]);
   const [systemConfig, setSystemConfig] = useState<SystemConfig>({
     maxTotalPlates: 50,
     maxPlatesPerTransportadora: 10,
@@ -85,6 +104,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const savedConfig = localStorage.getItem('systemConfig');
     const savedAllUsers = localStorage.getItem('allUsers');
     const savedPasswords = localStorage.getItem('passwords');
+    const savedSchedulingWindows = localStorage.getItem('schedulingWindows');
 
     if (savedUser) {
       setUser(JSON.parse(savedUser));
@@ -95,11 +115,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ...p, 
         createdAt: new Date(p.createdAt),
         arrivalConfirmed: p.arrivalConfirmed ? new Date(p.arrivalConfirmed) : undefined,
-        departureConfirmed: p.departureConfirmed ? new Date(p.departureConfirmed) : undefined
+        departureConfirmed: p.departureConfirmed ? new Date(p.departureConfirmed) : undefined,
+        scheduledDate: p.scheduledDate ? new Date(p.scheduledDate) : undefined
       })));
     }
     if (savedConfig) {
       setSystemConfig(JSON.parse(savedConfig));
+    }
+    if (savedSchedulingWindows) {
+      const parsedWindows = JSON.parse(savedSchedulingWindows);
+      setSchedulingWindows(parsedWindows.map((w: any) => ({
+        ...w,
+        startDate: new Date(w.startDate),
+        endDate: new Date(w.endDate)
+      })));
     }
     
     // Initialize users and passwords from localStorage or defaults
@@ -161,7 +190,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
            currentTime <= endTime;
   };
 
-  const addPlate = async (plateNumber: string): Promise<boolean> => {
+  const addPlate = async (plateNumber: string, scheduledDate?: Date, observations?: string): Promise<boolean> => {
     if (!user || user.type !== 'transportadora') return false;
     
     if (!validatePlateFormat(plateNumber.toUpperCase())) {
@@ -185,9 +214,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error(`Limite de ${maxPlates} placas atingido`);
     }
 
-    // Check total system limit
-    if (plates.length >= systemConfig.maxTotalPlates) {
+    // Check total system limit (now calculated dynamically)
+    const totalAvailableTrips = getTotalAvailableTrips();
+    if (plates.length >= totalAvailableTrips) {
       throw new Error('Limite total de placas do sistema atingido');
+    }
+
+    // Validate scheduled date if provided
+    if (scheduledDate && !isDateWithinSchedulingWindows(scheduledDate)) {
+      throw new Error('Data de agendamento não está dentro das janelas permitidas');
     }
 
     const newPlate: Plate = {
@@ -196,6 +231,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       transportadoraId: user.id,
       createdAt: new Date(),
       transportadoraName: user.name,
+      scheduledDate,
+      observations: observations?.trim() || undefined,
     };
 
     const updatedPlates = [...plates, newPlate];
@@ -374,6 +411,73 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return true;
   };
 
+  // New helper functions
+  const getTotalAvailableTrips = (): number => {
+    return allUsers
+      .filter(u => u.type === 'transportadora')
+      .reduce((total, user) => total + (user.maxPlates || systemConfig.maxPlatesPerTransportadora), 0);
+  };
+
+  const isDateWithinSchedulingWindows = (date: Date): boolean => {
+    const activeWindows = schedulingWindows.filter(w => w.isActive);
+    if (activeWindows.length === 0) return true; // If no windows defined, allow all dates
+    
+    return activeWindows.some(window => {
+      const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      const startDateOnly = new Date(window.startDate.getFullYear(), window.startDate.getMonth(), window.startDate.getDate());
+      const endDateOnly = new Date(window.endDate.getFullYear(), window.endDate.getMonth(), window.endDate.getDate());
+      
+      return dateOnly >= startDateOnly && dateOnly <= endDateOnly;
+    });
+  };
+
+  const getPlatesByDate = (date: Date): Plate[] => {
+    const dateStr = date.toDateString();
+    return plates.filter(plate => plate.createdAt.toDateString() === dateStr);
+  };
+
+  // Scheduling window management functions
+  const addSchedulingWindow = async (window: Omit<SchedulingWindow, 'id'>): Promise<boolean> => {
+    if (!user || user.type !== 'admin') {
+      throw new Error('Apenas administradores podem gerenciar janelas de agendamento');
+    }
+
+    const newWindow: SchedulingWindow = {
+      ...window,
+      id: Date.now().toString(),
+    };
+
+    const updatedWindows = [...schedulingWindows, newWindow];
+    setSchedulingWindows(updatedWindows);
+    saveToStorage('schedulingWindows', updatedWindows);
+    return true;
+  };
+
+  const updateSchedulingWindow = async (id: string, updates: Partial<SchedulingWindow>): Promise<boolean> => {
+    if (!user || user.type !== 'admin') {
+      throw new Error('Apenas administradores podem gerenciar janelas de agendamento');
+    }
+
+    const updatedWindows = schedulingWindows.map(w => 
+      w.id === id ? { ...w, ...updates } : w
+    );
+    
+    setSchedulingWindows(updatedWindows);
+    saveToStorage('schedulingWindows', updatedWindows);
+    return true;
+  };
+
+  const removeSchedulingWindow = async (id: string): Promise<boolean> => {
+    if (!user || user.type !== 'admin') {
+      throw new Error('Apenas administradores podem gerenciar janelas de agendamento');
+    }
+
+    const updatedWindows = schedulingWindows.filter(w => w.id !== id);
+    setSchedulingWindows(updatedWindows);
+    saveToStorage('schedulingWindows', updatedWindows);
+    return true;
+  };
+
   // Get transportadoras for backward compatibility
   const transportadoras = allUsers.filter(u => u.type === 'transportadora');
 
@@ -399,6 +503,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       updateUser,
       updateUserPassword,
       removeUser,
+      schedulingWindows,
+      addSchedulingWindow,
+      updateSchedulingWindow,
+      removeSchedulingWindow,
+      getTotalAvailableTrips,
+      getPlatesByDate,
     }}>
       {children}
     </AuthContext.Provider>
