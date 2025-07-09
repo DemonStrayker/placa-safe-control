@@ -9,7 +9,7 @@ import { Truck, Plus, Trash2, LogOut, Clock, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 
 const TransportadoraDashboard = () => {
-  const { user, logout, addPlate, removePlate, getAllPlates, systemConfig, schedulingWindows } = useAuth();
+  const { user, logout, addPlate, removePlate, getAllPlates, systemConfig, schedulingWindows, getTotalAvailableTrips } = useAuth();
   const [newPlate, setNewPlate] = useState('');
   const [scheduledDate, setScheduledDate] = useState('');
   const [observations, setObservations] = useState('');
@@ -17,6 +17,7 @@ const TransportadoraDashboard = () => {
   
   const userPlates = getAllPlates();
   const maxPlates = user?.maxPlates || systemConfig.maxPlatesPerTransportadora;
+  const totalAvailableTrips = getTotalAvailableTrips();
 
   const handleAddPlate = async (e: React.FormEvent) => {
     e.preventDefault();

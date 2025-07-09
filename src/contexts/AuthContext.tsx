@@ -217,7 +217,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Check total system limit (now calculated dynamically)
     const totalAvailableTrips = getTotalAvailableTrips();
     if (plates.length >= totalAvailableTrips) {
-      throw new Error('Limite total de placas do sistema atingido');
+      throw new Error(`Limite total de viagens do sistema atingido (${totalAvailableTrips} viagens disponíveis)`);
     }
 
     // Validate scheduled date if provided

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Truck, Users, Clock, Calendar } from 'lucide-react';
-import { SystemConfig, Plate, User } from '@/contexts/AuthContext';
+import { SystemConfig, Plate, User, useAuth } from '@/contexts/AuthContext';
 
 interface DashboardStatsProps {
   allPlates: Plate[];
@@ -14,6 +14,9 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({
   systemConfig,
   transportadoras
 }) => {
+  const { getTotalAvailableTrips } = useAuth();
+  const totalAvailableTrips = getTotalAvailableTrips();
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
       <Card>
@@ -25,7 +28,7 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({
             <div>
               <p className="text-sm text-gray-600">Total de Placas</p>
               <p className="text-2xl font-bold text-gray-900">
-                {allPlates.length}/{systemConfig.maxTotalPlates}
+                {allPlates.length}/{totalAvailableTrips}
               </p>
             </div>
           </div>
