@@ -117,6 +117,13 @@ const LoginForm = () => {
             </div>
           </CardContent>
         </Card>
+        
+        {/* Watermark */}
+        <div className="mt-4 text-center">
+          <p className="text-white/40 text-xs font-light tracking-wide">
+            Created and Made by Higor Vinicius
+          </p>
+        </div>
       </div>
     </div>
   );
