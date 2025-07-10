@@ -65,6 +65,8 @@ interface AuthContextType {
   removeSchedulingWindow: (id: string) => Promise<boolean>;
   getTotalAvailableTrips: () => number;
   getPlatesByDate: (date: Date) => Plate[];
+  getAvailableSchedulingDates: () => { date: Date, timeSlots: string[] }[];
+  isDateWithinSchedulingWindows: (date: Date) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -418,22 +420,109 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .reduce((total, user) => total + (user.maxPlates || systemConfig.maxPlatesPerTransportadora), 0);
   };
 
+  const getAvailableSchedulingDates = (): { date: Date, timeSlots: string[] }[] => {
+    const availableDates: { date: Date, timeSlots: string[] }[] = [];
+    const today = new Date();
+    const thirtyDaysFromNow = new Date(today.getTime() + (30 * 24 * 60 * 60 * 1000));
+    
+    // Check each day for the next 30 days
+    for (let d = new Date(today.getTime() + (24 * 60 * 60 * 1000)); d <= thirtyDaysFromNow; d.setDate(d.getDate() + 1)) {
+      const currentDate = new Date(d);
+      const dayOfWeek = currentDate.getDay();
+      
+      // Skip if day is not allowed globally
+      if (!systemConfig.allowedDays.includes(dayOfWeek)) continue;
+      
+      const timeSlots: string[] = [];
+      
+      // Check global time slots
+      const [startHour, startMinute] = systemConfig.allowedHours.start.split(':').map(Number);
+      const [endHour, endMinute] = systemConfig.allowedHours.end.split(':').map(Number);
+      
+      for (let hour = startHour; hour <= endHour; hour++) {
+        for (let minute = (hour === startHour ? startMinute : 0); minute < 60; minute += 30) {
+          if (hour === endHour && minute > endMinute) break;
+          
+          const testDate = new Date(currentDate);
+          testDate.setHours(hour, minute, 0, 0);
+          
+          if (isDateWithinSchedulingWindows(testDate)) {
+            timeSlots.push(`${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`);
+          }
+        }
+      }
+      
+      if (timeSlots.length > 0) {
+        availableDates.push({ date: currentDate, timeSlots });
+      }
+    }
+    
+    return availableDates;
+  };
+
   const isDateWithinSchedulingWindows = (date: Date): boolean => {
+    // Check if it's within global allowed days and hours
+    const dayOfWeek = date.getDay();
+    if (!systemConfig.allowedDays.includes(dayOfWeek)) {
+      return false;
+    }
+
+    const hour = date.getHours();
+    const minute = date.getMinutes();
+    const timeInMinutes = hour * 60 + minute;
+    
+    const [startHour, startMinute] = systemConfig.allowedHours.start.split(':').map(Number);
+    const [endHour, endMinute] = systemConfig.allowedHours.end.split(':').map(Number);
+    const startTimeInMinutes = startHour * 60 + startMinute;
+    const endTimeInMinutes = endHour * 60 + endMinute;
+    
+    if (timeInMinutes < startTimeInMinutes || timeInMinutes > endTimeInMinutes) {
+      return false;
+    }
+
+    // If there are active scheduling windows, check if date is within them
     const activeWindows = schedulingWindows.filter(w => w.isActive);
-    if (activeWindows.length === 0) return true; // If no windows defined, allow all dates
+    if (activeWindows.length === 0) {
+      return true; // No specific windows, global settings apply
+    }
     
     return activeWindows.some(window => {
       const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
       const startDateOnly = new Date(window.startDate.getFullYear(), window.startDate.getMonth(), window.startDate.getDate());
       const endDateOnly = new Date(window.endDate.getFullYear(), window.endDate.getMonth(), window.endDate.getDate());
       
-      return dateOnly >= startDateOnly && dateOnly <= endDateOnly;
+      // Check if date is within window period
+      if (dateOnly < startDateOnly || dateOnly > endDateOnly) {
+        return false;
+      }
+
+      // Check if time is within window hours
+      const [winStartHour, winStartMinute] = window.startTime.split(':').map(Number);
+      const [winEndHour, winEndMinute] = window.endTime.split(':').map(Number);
+      const winStartTimeInMinutes = winStartHour * 60 + winStartMinute;
+      const winEndTimeInMinutes = winEndHour * 60 + winEndMinute;
+      
+      return timeInMinutes >= winStartTimeInMinutes && timeInMinutes <= winEndTimeInMinutes;
     });
   };
 
   const getPlatesByDate = (date: Date): Plate[] => {
     const dateStr = date.toDateString();
-    return plates.filter(plate => plate.createdAt.toDateString() === dateStr);
+    return plates.filter(plate => {
+      // Include plates created on this date
+      if (plate.createdAt.toDateString() === dateStr) return true;
+      
+      // Include plates scheduled for this date
+      if (plate.scheduledDate && plate.scheduledDate.toDateString() === dateStr) return true;
+      
+      // Include plates that arrived on this date
+      if (plate.arrivalConfirmed && plate.arrivalConfirmed.toDateString() === dateStr) return true;
+      
+      // Include plates that departed on this date
+      if (plate.departureConfirmed && plate.departureConfirmed.toDateString() === dateStr) return true;
+      
+      return false;
+    });
   };
 
   // Scheduling window management functions
@@ -509,6 +598,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       removeSchedulingWindow,
       getTotalAvailableTrips,
       getPlatesByDate,
+      getAvailableSchedulingDates,
+      isDateWithinSchedulingWindows,
     }}>
       {children}
     </AuthContext.Provider>

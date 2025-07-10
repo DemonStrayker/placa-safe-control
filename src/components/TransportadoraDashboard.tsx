@@ -7,11 +7,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { Truck, Plus, Trash2, LogOut, Clock, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
+import SchedulingPicker from '@/components/SchedulingPicker';
 
 const TransportadoraDashboard = () => {
   const { user, logout, addPlate, removePlate, getAllPlates, systemConfig, schedulingWindows, getTotalAvailableTrips } = useAuth();
   const [newPlate, setNewPlate] = useState('');
-  const [scheduledDate, setScheduledDate] = useState('');
+  const [scheduledDateTime, setScheduledDateTime] = useState<Date | null>(null);
   const [observations, setObservations] = useState('');
   const [loading, setLoading] = useState(false);
   
@@ -25,10 +26,9 @@ const TransportadoraDashboard = () => {
 
     setLoading(true);
     try {
-      const schedDate = scheduledDate ? new Date(scheduledDate) : undefined;
-      await addPlate(newPlate.trim(), schedDate, observations.trim() || undefined);
+      await addPlate(newPlate.trim(), scheduledDateTime || undefined, observations.trim() || undefined);
       setNewPlate('');
-      setScheduledDate('');
+      setScheduledDateTime(null);
       setObservations('');
       toast.success('Placa adicionada com sucesso!');
     } catch (error: any) {
@@ -147,28 +147,22 @@ const TransportadoraDashboard = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleAddPlate} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="plate">Número da Placa</Label>
-                  <Input
-                    id="plate"
-                    value={newPlate}
-                    onChange={(e) => setNewPlate(e.target.value.toUpperCase())}
-                    placeholder="Ex: ABC-1234 ou ABC1D23"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="scheduledDate">Data de Carregamento (Opcional)</Label>
-                  <Input
-                    id="scheduledDate"
-                    type="datetime-local"
-                    value={scheduledDate}
-                    onChange={(e) => setScheduledDate(e.target.value)}
-                  />
-                </div>
+            <form onSubmit={handleAddPlate} className="space-y-6">
+              <div>
+                <Label htmlFor="plate">Número da Placa</Label>
+                <Input
+                  id="plate"
+                  value={newPlate}
+                  onChange={(e) => setNewPlate(e.target.value.toUpperCase())}
+                  placeholder="Ex: ABC-1234 ou ABC1D23"
+                  required
+                />
               </div>
+
+              <SchedulingPicker
+                selectedDateTime={scheduledDateTime}
+                onDateTimeChange={setScheduledDateTime}
+              />
               
               <div>
                 <Label htmlFor="observations">Observações (Opcional)</Label>
@@ -227,8 +221,18 @@ const TransportadoraDashboard = () => {
                           {formatPlate(plate.number)}
                         </p>
                         <p className="text-sm text-gray-600">
-                          {plate.createdAt.toLocaleString('pt-BR')}
+                          Cadastrado: {plate.createdAt.toLocaleString('pt-BR')}
                         </p>
+                        {plate.scheduledDate && (
+                          <p className="text-sm text-blue-600 font-medium">
+                            Agendado: {plate.scheduledDate.toLocaleString('pt-BR')}
+                          </p>
+                        )}
+                        {plate.observations && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            {plate.observations}
+                          </p>
+                        )}
                       </div>
                       <Button
                         onClick={() => handleRemovePlate(plate.id)}

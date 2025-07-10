@@ -21,8 +21,11 @@ const PDFReport = () => {
       const reportDate = new Date(selectedDate);
       const plates = getPlatesByDate(reportDate);
 
+      console.log('Generating PDF for date:', reportDate.toDateString());
+      console.log('Found plates:', plates.length);
+
       if (plates.length === 0) {
-        toast.error('Nenhuma placa encontrada para a data selecionada');
+        toast.error(`Nenhuma placa encontrada para ${reportDate.toLocaleDateString('pt-BR')}`);
         return;
       }
 
