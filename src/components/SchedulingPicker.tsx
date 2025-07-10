@@ -79,14 +79,22 @@ const SchedulingPicker: React.FC<SchedulingPickerProps> = ({
       </CardHeader>
       <CardContent className="space-y-4">
         {availableDates.length === 0 ? (
-          <div className="flex items-center gap-2 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-            <AlertCircle className="w-5 h-5 text-amber-600" />
-            <div>
-              <p className="text-sm font-medium text-amber-800">
-                Nenhuma data disponível para agendamento
-              </p>
-              <p className="text-xs text-amber-700">
-                Entre em contato com o administrador para configurar janelas de agendamento
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+              <AlertCircle className="w-5 h-5 text-amber-600" />
+              <div>
+                <p className="text-sm font-medium text-amber-800">
+                  Agendamento não configurado
+                </p>
+                <p className="text-xs text-amber-700">
+                  O administrador ainda não configurou janelas de agendamento. A placa será registrada para carregamento imediato.
+                </p>
+              </div>
+            </div>
+            
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-xs text-blue-700">
+                <strong>Nota:</strong> Sem agendamento configurado, todas as placas são registradas para carregamento imediato.
               </p>
             </div>
           </div>

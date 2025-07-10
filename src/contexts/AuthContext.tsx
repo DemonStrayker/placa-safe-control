@@ -41,6 +41,8 @@ interface AuthContextType {
   login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
   plates: Plate[];
+  setPlates: React.Dispatch<React.SetStateAction<Plate[]>>;
+  saveToStorage: (key: string, data: any) => void;
   addPlate: (plateNumber: string, scheduledDate?: Date, observations?: string) => Promise<boolean>;
   removePlate: (plateId: string) => void;
   getAllPlates: () => Plate[];
@@ -174,6 +176,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const isWithinAllowedTime = (): boolean => {
+    // Allow admin to bypass time restrictions for testing
+    if (user?.type === 'admin') return true;
+    
     const now = new Date();
     const currentHour = now.getHours();
     const currentMinute = now.getMinutes();
@@ -199,7 +204,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error('Formato de placa inválido. Use ABC-1234 ou ABC1D23');
     }
 
-    if (!isWithinAllowedTime()) {
+    // Only check time restriction for immediate registration, not for scheduled plates
+    if (!scheduledDate && !isWithinAllowedTime()) {
       throw new Error('Cadastro de placas não permitido neste horário/dia');
     }
 
@@ -508,21 +514,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const getPlatesByDate = (date: Date): Plate[] => {
     const dateStr = date.toDateString();
-    return plates.filter(plate => {
+    console.log('getPlatesByDate called with:', dateStr);
+    console.log('Total plates in system:', plates.length);
+    console.log('All plates:', plates.map(p => ({
+      id: p.id,
+      number: p.number,
+      createdAt: p.createdAt.toDateString(),
+      scheduledDate: p.scheduledDate?.toDateString(),
+      arrivalConfirmed: p.arrivalConfirmed?.toDateString(),
+      departureConfirmed: p.departureConfirmed?.toDateString()
+    })));
+    
+    const result = plates.filter(plate => {
       // Include plates created on this date
-      if (plate.createdAt.toDateString() === dateStr) return true;
+      if (plate.createdAt.toDateString() === dateStr) {
+        console.log('Found plate by createdAt:', plate.number);
+        return true;
+      }
       
       // Include plates scheduled for this date
-      if (plate.scheduledDate && plate.scheduledDate.toDateString() === dateStr) return true;
+      if (plate.scheduledDate && plate.scheduledDate.toDateString() === dateStr) {
+        console.log('Found plate by scheduledDate:', plate.number);
+        return true;
+      }
       
       // Include plates that arrived on this date
-      if (plate.arrivalConfirmed && plate.arrivalConfirmed.toDateString() === dateStr) return true;
+      if (plate.arrivalConfirmed && plate.arrivalConfirmed.toDateString() === dateStr) {
+        console.log('Found plate by arrivalConfirmed:', plate.number);
+        return true;
+      }
       
       // Include plates that departed on this date
-      if (plate.departureConfirmed && plate.departureConfirmed.toDateString() === dateStr) return true;
+      if (plate.departureConfirmed && plate.departureConfirmed.toDateString() === dateStr) {
+        console.log('Found plate by departureConfirmed:', plate.number);
+        return true;
+      }
       
       return false;
     });
+    
+    console.log('Filtered plates result:', result.length);
+    return result;
   };
 
   // Scheduling window management functions
@@ -576,6 +608,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       login,
       logout,
       plates,
+      setPlates,
+      saveToStorage,
       addPlate,
       removePlate,
       getAllPlates,

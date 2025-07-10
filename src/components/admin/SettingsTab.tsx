@@ -6,7 +6,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { SystemConfig, useAuth } from '@/contexts/AuthContext';
 import SchedulingManagement from '@/components/SchedulingManagement';
-import { Settings, CalendarCheck, TrendingUp } from 'lucide-react';
+import TestDataManager from '@/components/TestDataManager';
+import { Settings, CalendarCheck, TrendingUp, TestTube } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface SettingsTabProps {
@@ -33,7 +34,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
   return (
     <div className="space-y-6">
       <Tabs defaultValue="general" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="general" className="flex items-center gap-2">
             <Settings className="w-4 h-4" />
             Geral
@@ -45,6 +46,10 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
           <TabsTrigger value="trips" className="flex items-center gap-2">
             <TrendingUp className="w-4 h-4" />
             Viagens
+          </TabsTrigger>
+          <TabsTrigger value="testing" className="flex items-center gap-2">
+            <TestTube className="w-4 h-4" />
+            Testes
           </TabsTrigger>
         </TabsList>
 
@@ -156,6 +161,10 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="testing" className="space-y-6">
+          <TestDataManager />
         </TabsContent>
       </Tabs>
     </div>
