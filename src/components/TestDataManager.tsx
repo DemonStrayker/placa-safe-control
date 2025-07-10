@@ -63,10 +63,36 @@ const TestDataManager = () => {
   };
 
   const clearAllData = () => {
-    if (confirm('Tem certeza que deseja limpar TODOS os dados? Esta ação não pode ser desfeita.')) {
+    if (confirm('⚠️ ATENÇÃO: Tem certeza que deseja limpar TODOS os dados? Esta ação irá:\n\n• Remover todas as placas\n• Resetar para usuários padrão\n• Limpar configurações personalizadas\n\nEsta ação é IRREVERSÍVEL!')) {
+      console.log('🔄 Limpando todos os dados do sistema...');
+      
+      // Clear all data and reset to defaults
       setPlates([]);
       saveToStorage('plates', []);
-      toast.success('Todos os dados removidos!');
+      
+      // Reset users to defaults
+      const defaultUsers = [
+        { id: '1', username: 'admin', type: 'admin', name: 'Administrador' },
+        { id: '2', username: 'transportadora1', type: 'transportadora', name: 'Transportes ABC', maxPlates: 5 },
+        { id: '3', username: 'transportadora2', type: 'transportadora', name: 'Logística XYZ', maxPlates: 3 },
+        { id: '4', username: 'portaria', type: 'portaria', name: 'Portaria Principal' },
+      ];
+      
+      const defaultPasswords = {
+        'admin': 'admin123',
+        'transportadora1': 'trans123',
+        'transportadora2': 'trans456',
+        'portaria': 'portaria123',
+      };
+      
+      saveToStorage('allUsers', defaultUsers);
+      saveToStorage('passwords', defaultPasswords);
+      
+      // Clear initialization flag to force re-initialization
+      localStorage.removeItem('systemInitialized');
+      
+      console.log('✅ Sistema resetado para configurações padrão');
+      toast.success('Todos os dados removidos e sistema resetado para configurações padrão! Recarregue a página para aplicar as mudanças.');
     }
   };
 

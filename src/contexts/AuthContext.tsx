@@ -327,6 +327,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error('Nome de usuário já existe');
     }
 
+    console.log(`🔄 Criando novo usuário: ${username} (${type})`);
+
     const newUser: User = {
       id: Date.now().toString(),
       username,
@@ -338,10 +340,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const updatedUsers = [...allUsers, newUser];
     const updatedPasswords = { ...passwords, [username]: password };
     
-    setAllUsers(updatedUsers);
-    setPasswords(updatedPasswords);
-    saveToStorage('allUsers', updatedUsers);
-    saveToStorage('passwords', updatedPasswords);
+    try {
+      // Save to storage first
+      saveToStorageWithValidation('allUsers', updatedUsers);
+      saveToStorageWithValidation('passwords', updatedPasswords);
+      
+      // Only update state after successful save
+      setAllUsers(updatedUsers);
+      setPasswords(updatedPasswords);
+      
+      console.log(`✅ Usuário criado com sucesso: ${username}`);
+    } catch (error) {
+      console.error(`❌ Erro ao criar usuário ${username}:`, error);
+      throw new Error(`Falha ao criar usuário: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+    }
     
     return true;
   };
@@ -351,18 +363,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error('Apenas administradores podem gerenciar usuários');
     }
 
+    const targetUser = allUsers.find(u => u.id === id);
+    if (!targetUser) {
+      throw new Error('Usuário não encontrado');
+    }
+
+    console.log(`🔄 Atualizando usuário: ${targetUser.username}`);
+
     const updatedUsers = allUsers.map(u => 
       u.id === id ? { ...u, ...updates } : u
     );
     
-    setAllUsers(updatedUsers);
-    saveToStorage('allUsers', updatedUsers);
-    
-    // Update current user if they are the one being modified
-    if (user.id === id) {
-      const updatedCurrentUser = { ...user, ...updates };
-      setUser(updatedCurrentUser);
-      saveToStorage('user', updatedCurrentUser);
+    try {
+      // Save to storage first
+      saveToStorageWithValidation('allUsers', updatedUsers);
+      
+      // Update current user if they are the one being modified
+      if (user.id === id) {
+        const updatedCurrentUser = { ...user, ...updates };
+        saveToStorageWithValidation('user', updatedCurrentUser);
+        setUser(updatedCurrentUser);
+      }
+      
+      // Only update state after successful save
+      setAllUsers(updatedUsers);
+      
+      console.log(`✅ Usuário atualizado com sucesso: ${targetUser.username}`);
+    } catch (error) {
+      console.error(`❌ Erro ao atualizar usuário ${targetUser.username}:`, error);
+      throw new Error(`Falha ao atualizar usuário: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
     }
     
     return true;
@@ -378,9 +407,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error('Usuário não encontrado');
     }
 
+    console.log(`🔄 Atualizando senha do usuário: ${targetUser.username}`);
+
     const updatedPasswords = { ...passwords, [targetUser.username]: password };
-    setPasswords(updatedPasswords);
-    saveToStorage('passwords', updatedPasswords);
+    
+    try {
+      // Save to storage first
+      saveToStorageWithValidation('passwords', updatedPasswords);
+      
+      // Only update state after successful save
+      setPasswords(updatedPasswords);
+      
+      console.log(`✅ Senha atualizada com sucesso para: ${targetUser.username}`);
+    } catch (error) {
+      console.error(`❌ Erro ao atualizar senha para ${targetUser.username}:`, error);
+      throw new Error(`Falha ao atualizar senha: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+    }
     
     return true;
   };
@@ -400,20 +442,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error('Não é possível remover o usuário atual');
     }
 
+    console.log(`🔄 Removendo usuário: ${userToRemove.username}`);
+
     const updatedUsers = allUsers.filter(u => u.id !== id);
     const updatedPasswords = { ...passwords };
     delete updatedPasswords[userToRemove.username];
     
-    setAllUsers(updatedUsers);
-    setPasswords(updatedPasswords);
-    saveToStorage('allUsers', updatedUsers);
-    saveToStorage('passwords', updatedPasswords);
-    
-    // Remove associated plates if it's a transportadora
-    if (userToRemove.type === 'transportadora') {
-      const updatedPlates = plates.filter(p => p.transportadoraId !== id);
-      setPlates(updatedPlates);
-      saveToStorage('plates', updatedPlates);
+    try {
+      // Save to storage first
+      saveToStorageWithValidation('allUsers', updatedUsers);
+      saveToStorageWithValidation('passwords', updatedPasswords);
+      
+      // Remove associated plates if it's a transportadora
+      if (userToRemove.type === 'transportadora') {
+        const updatedPlates = plates.filter(p => p.transportadoraId !== id);
+        saveToStorageWithValidation('plates', updatedPlates);
+        setPlates(updatedPlates);
+      }
+      
+      // Only update state after successful save
+      setAllUsers(updatedUsers);
+      setPasswords(updatedPasswords);
+      
+      console.log(`✅ Usuário removido com sucesso: ${userToRemove.username}`);
+    } catch (error) {
+      console.error(`❌ Erro ao remover usuário ${userToRemove.username}:`, error);
+      throw new Error(`Falha ao remover usuário: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
     }
     
     return true;

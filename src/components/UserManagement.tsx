@@ -52,7 +52,7 @@ const UserManagement = () => {
         createForm.type,
         createForm.type === 'transportadora' ? createForm.maxPlates : undefined
       );
-      toast.success('Usuário criado com sucesso!');
+      toast.success(`Usuário "${createForm.name}" criado com sucesso! As alterações foram salvas permanentemente.`);
       setIsCreateDialogOpen(false);
       setCreateForm({
         username: '',
@@ -62,7 +62,8 @@ const UserManagement = () => {
         maxPlates: 10,
       });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Erro ao criar usuário');
+      console.error('Erro detalhado ao criar usuário:', error);
+      toast.error(`Erro ao criar usuário: ${error instanceof Error ? error.message : 'Erro desconhecido'}. Verifique o console para mais detalhes.`);
     } finally {
       setLoading(false);
     }
@@ -80,11 +81,12 @@ const UserManagement = () => {
         type: editForm.type,
         maxPlates: editForm.type === 'transportadora' ? editForm.maxPlates : undefined,
       });
-      toast.success('Usuário atualizado com sucesso!');
+      toast.success(`Usuário "${editForm.name}" atualizado com sucesso! As alterações foram salvas permanentemente.`);
       setIsEditDialogOpen(false);
       setSelectedUser(null);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Erro ao atualizar usuário');
+      console.error('Erro detalhado ao atualizar usuário:', error);
+      toast.error(`Erro ao atualizar usuário: ${error instanceof Error ? error.message : 'Erro desconhecido'}. Verifique o console para mais detalhes.`);
     } finally {
       setLoading(false);
     }
@@ -98,19 +100,20 @@ const UserManagement = () => {
 
     try {
       await updateUserPassword(selectedUser.id, passwordForm.newPassword);
-      toast.success('Senha atualizada com sucesso!');
+      toast.success(`Senha do usuário "${selectedUser.name}" atualizada com sucesso! As alterações foram salvas permanentemente.`);
       setIsPasswordDialogOpen(false);
       setSelectedUser(null);
       setPasswordForm({ newPassword: '' });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Erro ao atualizar senha');
+      console.error('Erro detalhado ao atualizar senha:', error);
+      toast.error(`Erro ao atualizar senha: ${error instanceof Error ? error.message : 'Erro desconhecido'}. Verifique o console para mais detalhes.`);
     } finally {
       setLoading(false);
     }
   };
 
   const handleDeleteUser = async (user: any) => {
-    if (!confirm(`Tem certeza que deseja excluir o usuário "${user.name}"?`)) {
+    if (!confirm(`Tem certeza que deseja excluir o usuário "${user.name}"? Esta ação será permanente e não pode ser desfeita.`)) {
       return;
     }
 
@@ -118,9 +121,10 @@ const UserManagement = () => {
 
     try {
       await removeUser(user.id);
-      toast.success('Usuário excluído com sucesso!');
+      toast.success(`Usuário "${user.name}" excluído com sucesso! As alterações foram salvas permanentemente.`);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Erro ao excluir usuário');
+      console.error('Erro detalhado ao excluir usuário:', error);
+      toast.error(`Erro ao excluir usuário: ${error instanceof Error ? error.message : 'Erro desconhecido'}. Verifique o console para mais detalhes.`);
     } finally {
       setLoading(false);
     }

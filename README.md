@@ -37,6 +37,117 @@ Sistema web para gestão de placas de veículos com múltiplos tipos de usuário
 - Usuário: `portaria`
 - Senha: `portaria123`
 
+## 🔧 Correções de Persistência de Dados
+
+### Bug Corrigido: Persistência de Logins
+
+**Problema Identificado:**
+- Logins criados manualmente eram perdidos após reiniciar o sistema
+- Usuários deletados reapareciam após reinicialização
+- Sistema sempre resetava para usuários padrão
+
+**Solução Implementada:**
+
+1. **Sistema de Inicialização Inteligente:**
+   - Flag `systemInitialized` no localStorage previne recriação de usuários padrão
+   - Usuários padrão são criados APENAS na primeira execução
+   - Alterações subsequentes são mantidas permanentemente
+
+2. **Validação de Operações de Armazenamento:**
+   - Função `saveToStorageWithValidation()` garante que dados sejam salvos corretamente
+   - Verificação pós-salvamento confirma integridade dos dados
+   - Logs detalhados para diagnóstico de problemas
+
+3. **Operações CRUD Robustas:**
+   - Salvamento no localStorage ANTES de atualizar o estado da aplicação
+   - Rollback automático em caso de falha
+   - Mensagens de erro específicas para cada tipo de operação
+
+4. **Sistema de Logs Abrangente:**
+   - Console logs para todas as operações críticas
+   - Identificação clara de sucessos e falhas
+   - Rastreamento de operações de usuário
+
+### Como Verificar a Correção:
+
+1. **Teste de Criação de Usuário:**
+   ```
+   1. Login como admin
+   2. Criar novo usuário
+   3. Recarregar a página
+   4. Verificar que usuário permanece
+   ```
+
+2. **Teste de Deleção de Usuário:**
+   ```
+   1. Login como admin
+   2. Deletar um usuário
+   3. Recarregar a página
+   4. Verificar que usuário não retorna
+   ```
+
+3. **Teste de Edição de Usuário:**
+   ```
+   1. Login como admin
+   2. Editar dados de um usuário
+   3. Recarregar a página
+   4. Verificar que alterações permanecem
+   ```
+
+### Logs de Diagnóstico:
+
+Abra o Console do Navegador (F12) para ver logs detalhados:
+- `🔄` Operações em andamento
+- `✅` Operações bem-sucedidas
+- `❌` Erros e falhas
+- `💾` Operações de salvamento
+- `⚠️` Avisos importantes
+
+### Estrutura de Dados no localStorage:
+
+```javascript
+// Chaves utilizadas:
+localStorage.getItem('systemInitialized') // Flag de inicialização
+localStorage.getItem('allUsers')          // Lista de usuários
+localStorage.getItem('passwords')         // Senhas dos usuários
+localStorage.getItem('user')              // Usuário logado atual
+localStorage.getItem('plates')            // Placas cadastradas
+localStorage.getItem('systemConfig')      // Configurações do sistema
+localStorage.getItem('schedulingWindows') // Janelas de agendamento
+```
+
+### Troubleshooting:
+
+**Se os dados ainda não persistem:**
+
+1. **Verificar Console:**
+   - Abrir F12 → Console
+   - Procurar por mensagens de erro em vermelho
+   - Verificar se há erros de quota do localStorage
+
+2. **Limpar Cache:**
+   - F12 → Application → Storage → Clear Storage
+   - Recarregar página para reinicialização limpa
+
+3. **Verificar Espaço do localStorage:**
+   ```javascript
+   // No console do navegador:
+   console.log('localStorage usage:', JSON.stringify(localStorage).length);
+   ```
+
+4. **Reset Manual do Sistema:**
+   - Login como admin
+   - Configurações → Testes → "Limpar Tudo"
+   - Recarregar página
+
+### Segurança e Integridade:
+
+- ✅ Transações atômicas (salva tudo ou nada)
+- ✅ Validação pós-operação
+- ✅ Logs de auditoria
+- ✅ Prevenção de corrupção de dados
+- ✅ Rollback em caso de falha
+
 ## Como Usar
 
 ### Configuração do Sistema (Admin)
