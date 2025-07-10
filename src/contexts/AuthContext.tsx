@@ -152,6 +152,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem(key, JSON.stringify(data));
   };
 
+  const saveToStorageWithValidation = (key: string, data: any) => {
+    try {
+      localStorage.setItem(key, JSON.stringify(data));
+    } catch (error) {
+      console.error(`Failed to save ${key} to localStorage:`, error);
+      throw new Error(`Storage operation failed for ${key}`);
+    }
+  };
+
   const login = async (username: string, password: string): Promise<boolean> => {
     const foundUser = allUsers.find(u => u.username === username);
     
