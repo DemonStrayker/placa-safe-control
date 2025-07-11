@@ -18,9 +18,8 @@ Este projeto implementa um sistema completo de controle de placas de veículos c
 
 #### Instalar Dependências
 ```bash
-# Na raiz do projeto, crie o package.json do backend
-cp server-package.json package.json
-npm install
+# Na raiz do projeto
+npm install express sqlite3 ws bcrypt cors
 ```
 
 #### Dependências do Backend
@@ -96,13 +95,13 @@ O servidor iniciará em:
 # Terminal 1 - Expor API HTTP
 ngrok http 3000
 
-# Terminal 2 - Expor WebSocket
+# Terminal 2 - Expor WebSocket  
 ngrok http 8080
 ```
 
 Você receberá URLs como:
-- **API HTTP**: `https://abc123.ngrok.io`
-- **WebSocket**: `wss://def456.ngrok.io`
+- **API HTTP**: `https://abc123-def456.ngrok-free.app`
+- **WebSocket**: `wss://ghi789-jkl012.ngrok-free.app`
 
 ### 4. Configurar URLs no Frontend
 
@@ -115,7 +114,7 @@ const getApiBaseUrl = () => {
     return 'http://localhost:3000';
   }
   // Substitua pela sua URL ngrok HTTP
-  return 'https://SEU_NGROK_HTTP_URL.ngrok.io';
+  return 'https://abc123-def456.ngrok-free.app';
 };
 ```
 
@@ -126,7 +125,7 @@ const getWebSocketUrl = () => {
     return 'ws://localhost:8080';
   }
   // Substitua pela sua URL ngrok WebSocket
-  return 'wss://SEU_NGROK_WS_URL.ngrok.io';
+  return 'wss://ghi789-jkl012.ngrok-free.app';
 };
 ```
 
@@ -141,6 +140,9 @@ const getWebSocketUrl = () => {
 - `POST /api/mark-plate` - Marcar nova placa (só transportadoras)
 - `POST /api/confirm-arrival/:plateId` - Confirmar chegada (só portaria)
 - `POST /api/confirm-departure/:plateId` - Confirmar saída (só portaria)
+
+### WebSocket
+- `GET /api/websocket-status` - Status das conexões WebSocket
 
 ### Exemplos de Requisições
 
@@ -170,12 +172,15 @@ POST /api/mark-plate
 ### Tipos de Mensagens
 ```typescript
 interface WebSocketMessage {
-  type: 'PLATE_ADDED' | 'PLATE_UPDATED' | 'PLATE_REMOVED';
-  plate: Plate;
+  type: 'PLATE_ADDED' | 'PLATE_UPDATED' | 'PLATE_REMOVED' | 'CONNECTION_CONFIRMED';
+  plate?: Plate;
+  message?: string;
+  timestamp?: string;
 }
 ```
 
 ### Eventos
+- **CONNECTION_CONFIRMED**: Confirmação de conexão estabelecida
 - **PLATE_ADDED**: Nova placa cadastrada
 - **PLATE_UPDATED**: Placa atualizada (chegada/saída confirmada)
 - **PLATE_REMOVED**: Placa removida do sistema
@@ -218,15 +223,25 @@ node server.js
 ```javascript
 // No console do navegador
 const ws = new WebSocket('ws://localhost:8080');
+ws.onopen = () => console.log('✅ WebSocket conectado');
 ws.onmessage = (event) => {
-  console.log('Mensagem recebida:', JSON.parse(event.data));
+  console.log('📨 Mensagem recebida:', JSON.parse(event.data));
 };
+ws.onerror = (error) => console.error('❌ Erro WebSocket:', error);
 ```
 
-### 3. Teste de Marcação
-1. Faça login como transportadora
-2. Cadastre uma placa
-3. Verifique se outros usuários veem a atualização em tempo real
+### 3. Teste de Marcação em Tempo Real
+1. Abra duas abas do navegador
+2. Faça login como transportadora em uma aba
+3. Faça login como portaria na outra aba
+4. Cadastre uma placa na aba da transportadora
+5. ✅ Verifique se a placa aparece instantaneamente na aba da portaria
+
+### 4. Teste de Confirmações
+1. Na aba da portaria, confirme a chegada da placa
+2. ✅ Verifique se o status é atualizado em tempo real na aba da transportadora
+3. Confirme a saída da placa
+4. ✅ Verifique se o status final é sincronizado
 
 ## 📦 Deploy e Manutenção
 
@@ -250,8 +265,7 @@ cp database.db database_backup_$(date +%Y%m%d_%H%M%S).db
 # Ver logs do PM2
 pm2 logs placa-backend
 
-# Logs do WebSocket
-# Conectados: aparece no console quando clientes conectam/desconectam
+# Logs do WebSocket aparecem no console quando clientes conectam/desconectam
 ```
 
 ## 🔍 Troubleshooting
@@ -259,13 +273,24 @@ pm2 logs placa-backend
 ### Problemas Comuns
 
 #### 1. WebSocket não conecta
-- Verificar se o servidor está rodando na porta 8080
-- Verificar firewall
-- Confirmar URL do ngrok
+**Sintomas**: Badge mostra "Desconectado", console mostra erros de conexão
+
+**Soluções**:
+```bash
+# Verificar se o servidor está rodando
+curl http://localhost:3000/api/health
+
+# Verificar WebSocket
+curl http://localhost:3000/api/websocket-status
+
+# Verificar portas
+netstat -tulpn | grep :8080
+```
 
 #### 2. CORS Error
-- Verificar se o domínio está na lista de origens permitidas
-- Confirmar configuração do CORS no servidor
+**Sintomas**: Erro de CORS no console do navegador
+
+**Solução**: Verificar se o domínio está na lista de origens permitidas no `server.js`
 
 #### 3. Banco de dados travado
 ```bash
@@ -276,20 +301,36 @@ lsof database.db
 pm2 restart placa-backend
 ```
 
-#### 4. Sincronização Frontend/Backend
-- O frontend funciona offline (localStorage)
-- O backend sincroniza quando disponível
-- Verificar logs do console para erros
+#### 4. ngrok URLs não funcionam
+**Sintomas**: Erro 502 ou timeout
+
+**Soluções**:
+```bash
+# Verificar se ngrok está rodando
+ngrok status
+
+# Verificar se as URLs estão corretas no código
+# Verificar se o servidor local está rodando antes do ngrok
+```
 
 ### Monitoramento
 
 #### Status do Sistema
 ```bash
 # Verificar status da API
-curl https://SEU_NGROK_URL.ngrok.io/api/health
+curl https://SEU_NGROK_URL.ngrok-free.app/api/health
 
 # Verificar conexões WebSocket
-# O endpoint /api/health retorna o número de clientes conectados
+curl https://SEU_NGROK_URL.ngrok-free.app/api/websocket-status
+```
+
+#### Logs de Debug
+```javascript
+// No console do navegador - testar WebSocket
+const ws = new WebSocket('wss://SEU_NGROK_WS_URL.ngrok-free.app');
+ws.onopen = () => console.log('✅ Conectado');
+ws.onmessage = (e) => console.log('📨', JSON.parse(e.data));
+ws.onerror = (e) => console.error('❌', e);
 ```
 
 ## 📚 Documentação Adicional
@@ -303,7 +344,6 @@ curl https://SEU_NGROK_URL.ngrok.io/api/health
 ```
 projeto/
 ├── server.js                 # Backend principal
-├── server-package.json       # Dependências do backend
 ├── database.db              # Banco SQLite (criado automaticamente)
 ├── src/
 │   ├── contexts/AuthContext.tsx    # Context com integração backend
@@ -311,7 +351,7 @@ projeto/
 │   ├── components/
 │   │   ├── WebSocketStatus.tsx     # Status da conexão
 │   │   └── TransportadoraDashboard.tsx # Dashboard atualizado
-└── README.md                # Esta documentação
+└── REALTIME_IMPLEMENTATION_README.md # Esta documentação
 ```
 
 ## 🎯 Próximos Passos
@@ -327,11 +367,41 @@ projeto/
 ## 📞 Suporte
 
 Para dúvidas ou problemas:
-1. Verificar logs do servidor (`pm2 logs`)
-2. Verificar console do navegador
-3. Testar endpoints com Postman/curl
-4. Verificar status do ngrok
+
+### 1. Verificar Logs
+```bash
+# Logs do servidor
+pm2 logs placa-backend
+
+# Logs do navegador
+# F12 → Console → Procurar erros em vermelho
+```
+
+### 2. Testar Endpoints
+```bash
+# Testar API
+curl https://SEU_NGROK_URL.ngrok-free.app/api/health
+
+# Testar WebSocket
+curl https://SEU_NGROK_URL.ngrok-free.app/api/websocket-status
+```
+
+### 3. Verificar Configuração
+- URLs do ngrok estão corretas no código?
+- Servidor local está rodando antes do ngrok?
+- Firewall não está bloqueando as portas?
 
 **Status do Sistema**: Use `/api/health` para verificar se tudo está funcionando.
 
 **Tempo Real**: O badge no canto superior direito mostra o status da conexão WebSocket.
+
+## ✅ Checklist de Implementação
+
+- [ ] Instalar dependências: `npm install express sqlite3 ws bcrypt cors`
+- [ ] Executar servidor: `node server.js`
+- [ ] Configurar ngrok para portas 3000 e 8080
+- [ ] Atualizar URLs no frontend (`AuthContext.tsx` e `useWebSocket.ts`)
+- [ ] Testar conexão WebSocket no console do navegador
+- [ ] Testar cadastro de placa em tempo real
+- [ ] Verificar sincronização entre múltiplas abas
+- [ ] Confirmar persistência no banco SQLite

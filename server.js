@@ -6,8 +6,8 @@ const cors = require('cors');
 const path = require('path');
 
 const app = express();
-const PORT = 3000;
-const WS_PORT = 8080;
+const PORT = process.env.PORT || 3000;
+const WS_PORT = process.env.WS_PORT || 8080;
 
 // Middleware
 app.use(express.json());
@@ -72,12 +72,22 @@ db.serialize(() => {
 const wss = new WebSocket.Server({ port: WS_PORT });
 const clients = new Set();
 
-wss.on('connection', (ws) => {
-  console.log('🔗 Novo cliente WebSocket conectado');
+console.log(`🔗 WebSocket server iniciado na porta ${WS_PORT}`);
+
+wss.on('connection', (ws, req) => {
+  const clientIP = req.socket.remoteAddress;
+  console.log(`🔗 Novo cliente WebSocket conectado de ${clientIP}`);
   clients.add(ws);
 
+  // Send connection confirmation
+  ws.send(JSON.stringify({
+    type: 'CONNECTION_CONFIRMED',
+    message: 'Conectado ao servidor WebSocket',
+    timestamp: new Date().toISOString()
+  }));
+
   ws.on('close', () => {
-    console.log('🔌 Cliente WebSocket desconectado');
+    console.log(`🔌 Cliente WebSocket desconectado (${clientIP})`);
     clients.delete(ws);
   });
 
@@ -85,14 +95,36 @@ wss.on('connection', (ws) => {
     console.error('❌ Erro no WebSocket:', error);
     clients.delete(ws);
   });
+
+  // Send heartbeat every 30 seconds
+  const heartbeat = setInterval(() => {
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.ping();
+    } else {
+      clearInterval(heartbeat);
+    }
+  }, 30000);
+
+  ws.on('pong', () => {
+    console.log('💓 Heartbeat recebido do cliente');
+  });
 });
 
 // Function to broadcast to all clients
 function broadcast(data) {
   const message = JSON.stringify(data);
+  console.log(`📡 Broadcasting para ${clients.size} clientes:`, data.type);
+  
   clients.forEach((client) => {
     if (client.readyState === WebSocket.OPEN) {
-      client.send(message);
+      try {
+        client.send(message);
+      } catch (error) {
+        console.error('❌ Erro ao enviar mensagem para cliente:', error);
+        clients.delete(client);
+      }
+    } else {
+      clients.delete(client);
     }
   });
 }
@@ -107,6 +139,7 @@ const authenticateUser = (req, res, next) => {
 
   db.get('SELECT * FROM users WHERE username = ?', [username], async (err, user) => {
     if (err) {
+      console.error('❌ Erro na consulta do usuário:', err);
       return res.status(500).json({ error: 'Erro no servidor' });
     }
     
@@ -126,9 +159,21 @@ const authenticateUser = (req, res, next) => {
 
 // Routes
 
+// Health check
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    websocket_clients: clients.size,
+    database_status: 'Connected'
+  });
+});
+
 // Login endpoint
 app.post('/api/login', authenticateUser, (req, res) => {
   const { id, username, name, role, max_plates } = req.user;
+  console.log(`✅ Login bem-sucedido: ${username} (${role})`);
+  
   res.json({
     success: true,
     user: {
@@ -143,6 +188,8 @@ app.post('/api/login', authenticateUser, (req, res) => {
 
 // Get all plates
 app.get('/api/plates', (req, res) => {
+  console.log('📋 Buscando todas as placas...');
+  
   db.all(`
     SELECT p.*, u.name as transportadora_name 
     FROM plates p 
@@ -150,6 +197,7 @@ app.get('/api/plates', (req, res) => {
     ORDER BY p.registration_date DESC
   `, (err, rows) => {
     if (err) {
+      console.error('❌ Erro ao buscar placas:', err);
       return res.status(500).json({ error: 'Erro ao buscar placas' });
     }
     
@@ -165,6 +213,7 @@ app.get('/api/plates', (req, res) => {
       observations: row.observations
     }));
     
+    console.log(`✅ Retornando ${plates.length} placas`);
     res.json(plates);
   });
 });
@@ -172,6 +221,8 @@ app.get('/api/plates', (req, res) => {
 // Mark plate endpoint - only for transportadoras
 app.post('/api/mark-plate', authenticateUser, (req, res) => {
   const { plate_number, scheduled_date, observations } = req.body;
+  
+  console.log(`🚛 Tentativa de marcar placa: ${plate_number} por ${req.user.username}`);
   
   if (req.user.role !== 'transportadora') {
     return res.status(403).json({ error: 'Apenas transportadoras podem marcar placas' });
@@ -190,6 +241,7 @@ app.post('/api/mark-plate', authenticateUser, (req, res) => {
   // Check if plate already exists
   db.get('SELECT id FROM plates WHERE plate_number = ?', [plate_number.toUpperCase()], (err, existing) => {
     if (err) {
+      console.error('❌ Erro ao verificar placa existente:', err);
       return res.status(500).json({ error: 'Erro no servidor' });
     }
     
@@ -200,6 +252,7 @@ app.post('/api/mark-plate', authenticateUser, (req, res) => {
     // Check user's plate limit
     db.get('SELECT COUNT(*) as count FROM plates WHERE transportadora_id = ?', [req.user.id], (err, result) => {
       if (err) {
+        console.error('❌ Erro ao verificar limite de placas:', err);
         return res.status(500).json({ error: 'Erro no servidor' });
       }
 
@@ -213,8 +266,11 @@ app.post('/api/mark-plate', authenticateUser, (req, res) => {
         VALUES (?, ?, ?, ?)
       `, [plate_number.toUpperCase(), req.user.id, scheduled_date || null, observations || null], function(err) {
         if (err) {
+          console.error('❌ Erro ao inserir placa:', err);
           return res.status(500).json({ error: 'Erro ao cadastrar placa' });
         }
+
+        console.log(`✅ Placa ${plate_number} cadastrada com ID ${this.lastID}`);
 
         // Get the inserted plate with transportadora name
         db.get(`
@@ -224,6 +280,7 @@ app.post('/api/mark-plate', authenticateUser, (req, res) => {
           WHERE p.id = ?
         `, [this.lastID], (err, plate) => {
           if (err) {
+            console.error('❌ Erro ao buscar placa cadastrada:', err);
             return res.status(500).json({ error: 'Erro ao buscar placa cadastrada' });
           }
 
@@ -262,15 +319,19 @@ app.post('/api/confirm-arrival/:plateId', authenticateUser, (req, res) => {
   }
 
   const plateId = req.params.plateId;
+  console.log(`🚪 Confirmando chegada da placa ID: ${plateId}`);
   
   db.run('UPDATE plates SET arrival_confirmed = CURRENT_TIMESTAMP WHERE id = ?', [plateId], function(err) {
     if (err) {
+      console.error('❌ Erro ao confirmar chegada:', err);
       return res.status(500).json({ error: 'Erro ao confirmar chegada' });
     }
 
     if (this.changes === 0) {
       return res.status(404).json({ error: 'Placa não encontrada' });
     }
+
+    console.log(`✅ Chegada confirmada para placa ID: ${plateId}`);
 
     // Get updated plate
     db.get(`
@@ -280,6 +341,7 @@ app.post('/api/confirm-arrival/:plateId', authenticateUser, (req, res) => {
       WHERE p.id = ?
     `, [plateId], (err, plate) => {
       if (err) {
+        console.error('❌ Erro ao buscar placa atualizada:', err);
         return res.status(500).json({ error: 'Erro ao buscar placa atualizada' });
       }
 
@@ -316,10 +378,12 @@ app.post('/api/confirm-departure/:plateId', authenticateUser, (req, res) => {
   }
 
   const plateId = req.params.plateId;
+  console.log(`🚪 Confirmando saída da placa ID: ${plateId}`);
   
   // Check if arrival was confirmed first
   db.get('SELECT arrival_confirmed FROM plates WHERE id = ?', [plateId], (err, plate) => {
     if (err) {
+      console.error('❌ Erro ao verificar chegada:', err);
       return res.status(500).json({ error: 'Erro no servidor' });
     }
 
@@ -333,8 +397,11 @@ app.post('/api/confirm-departure/:plateId', authenticateUser, (req, res) => {
 
     db.run('UPDATE plates SET departure_confirmed = CURRENT_TIMESTAMP WHERE id = ?', [plateId], function(err) {
       if (err) {
+        console.error('❌ Erro ao confirmar saída:', err);
         return res.status(500).json({ error: 'Erro ao confirmar saída' });
       }
+
+      console.log(`✅ Saída confirmada para placa ID: ${plateId}`);
 
       // Get updated plate
       db.get(`
@@ -344,6 +411,7 @@ app.post('/api/confirm-departure/:plateId', authenticateUser, (req, res) => {
         WHERE p.id = ?
       `, [plateId], (err, plate) => {
         if (err) {
+          console.error('❌ Erro ao buscar placa atualizada:', err);
           return res.status(500).json({ error: 'Erro ao buscar placa atualizada' });
         }
 
@@ -374,12 +442,12 @@ app.post('/api/confirm-departure/:plateId', authenticateUser, (req, res) => {
   });
 });
 
-// Health check
-app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
-    timestamp: new Date().toISOString(),
-    websocket_clients: clients.size
+// WebSocket status endpoint
+app.get('/api/websocket-status', (req, res) => {
+  res.json({
+    connected_clients: clients.size,
+    server_status: 'running',
+    port: WS_PORT
   });
 });
 
@@ -388,20 +456,39 @@ app.listen(PORT, () => {
   console.log(`🚀 Servidor Express rodando na porta ${PORT}`);
   console.log(`🔗 WebSocket rodando na porta ${WS_PORT}`);
   console.log(`👥 ${clients.size} clientes WebSocket conectados`);
+  console.log(`📊 Status: http://localhost:${PORT}/api/health`);
 });
 
 // Handle graceful shutdown
 process.on('SIGINT', () => {
   console.log('\n🛑 Encerrando servidor...');
+  
+  // Close WebSocket connections
+  clients.forEach(client => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.close(1000, 'Server shutdown');
+    }
+  });
+  
+  wss.close(() => {
+    console.log('✅ WebSocket server fechado.');
+  });
+  
   db.close((err) => {
     if (err) {
       console.error('❌ Erro ao fechar banco de dados:', err.message);
     } else {
       console.log('✅ Conexão com banco de dados fechada.');
     }
+    process.exit(0);
   });
-  wss.close(() => {
-    console.log('✅ WebSocket server fechado.');
-  });
-  process.exit(0);
+});
+
+// Error handling
+process.on('uncaughtException', (error) => {
+  console.error('❌ Erro não capturado:', error);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Promise rejeitada não tratada:', reason);
 });

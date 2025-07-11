@@ -95,8 +95,9 @@ const getApiBaseUrl = () => {
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
     return 'http://localhost:3000';
   }
-  // TODO: Replace with your ngrok HTTP URL
-  return 'https://YOUR_NGROK_HTTP_URL.ngrok.io';
+  // TODO: Replace with your ngrok HTTP URL  
+  // Example: return 'https://abc123-def456.ngrok-free.app';
+  return 'https://YOUR_NGROK_HTTP_URL.ngrok-free.app';
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {

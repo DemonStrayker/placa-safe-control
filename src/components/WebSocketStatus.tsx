@@ -50,7 +50,7 @@ const WebSocketStatus: React.FC = () => {
       )}
       
       {connectionError && (
-        <span className="text-xs text-muted-foreground">
+        <span className="text-xs text-muted-foreground max-w-xs truncate">
           {connectionError}
         </span>
       )}
