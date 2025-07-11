@@ -39,6 +39,23 @@ Sistema web para gestão de placas de veículos com múltiplos tipos de usuário
 
 ## 🔧 Correções de Persistência de Dados
 
+## ⚠️ Importante: Sistema Adaptado para Vercel
+
+**O sistema foi adaptado para funcionar na Vercel (plataforma serverless) que não suporta WebSockets persistentes.**
+
+### Modo de Funcionamento na Vercel:
+- ✅ **Dados Locais**: Todas as informações são salvas no localStorage do navegador
+- ✅ **Persistência**: Dados permanecem entre sessões no mesmo dispositivo
+- ✅ **Funcionalidade Completa**: Todas as funcionalidades funcionam normalmente
+- ⚠️ **Limitação**: Dados não são compartilhados entre diferentes dispositivos/navegadores
+- 🔄 **Status**: Badge mostra "Modo Offline" indicando funcionamento local
+
+### Para Uso em Produção com Sincronização:
+Se precisar de sincronização entre múltiplos usuários, considere:
+1. **Hospedar backend** em serviço que suporte WebSockets (Railway, Render, DigitalOcean)
+2. **Usar banco de dados** em nuvem (PostgreSQL, MongoDB Atlas)
+3. **Configurar ngrok** para desenvolvimento local com backend
+
 ### Bug Corrigido: Persistência de Logins
 
 **Problema Identificado:**
