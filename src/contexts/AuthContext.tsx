@@ -90,14 +90,10 @@ const defaultPasswords: { [key: string]: string } = {
   'portaria': 'portaria123',
 };
 
-// API Base URL - use ngrok URL in production
+// Sistema adaptado para Vercel - usar apenas localStorage
 const getApiBaseUrl = () => {
-  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    return 'http://localhost:3000';
-  }
-  // TODO: Replace with your ngrok HTTP URL  
-  // Example: return 'https://abc123-def456.ngrok-free.app';
-  return 'https://YOUR_NGROK_HTTP_URL.ngrok-free.app';
+  // Na Vercel, não temos backend persistente, usar apenas localStorage
+  return null; // Forçar uso do localStorage
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -238,25 +234,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-      });
+      const apiUrl = getApiBaseUrl();
+      
+      // Se temos backend disponível, tentar usar
+      if (apiUrl) {
+        const response = await fetch(`${apiUrl}/api/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
 
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && data.user) {
-          setUser(data.user);
-          saveToStorage('user', data.user);
-          
-          // Load plates from backend after successful login
-          await loadPlatesFromBackend();
-          return true;
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.user) {
+            setUser(data.user);
+            saveToStorage('user', data.user);
+            await loadPlatesFromBackend();
+            return true;
+          }
         }
       }
       
-      // Fallback to local authentication if backend is not available
+      // Usar autenticação local (localStorage)
       const foundUser = allUsers.find(u => u.username === username);
       if (foundUser && passwords[username] === password) {
         setUser(foundUser);
@@ -266,9 +265,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       return false;
     } catch (error) {
-      console.error('Login error, falling back to local auth:', error);
+      console.log('🔄 Usando autenticação local (modo offline)');
       
-      // Fallback to local authentication
+      // Usar autenticação local
       const foundUser = allUsers.find(u => u.username === username);
       if (foundUser && passwords[username] === password) {
         setUser(foundUser);
@@ -283,21 +282,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Load plates from backend
   const loadPlatesFromBackend = async () => {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/plates`);
-      if (response.ok) {
-        const backendPlates = await response.json();
-        const formattedPlates = backendPlates.map((p: any) => ({
-          ...p,
-          createdAt: new Date(p.createdAt),
-          arrivalConfirmed: p.arrivalConfirmed ? new Date(p.arrivalConfirmed) : undefined,
-          departureConfirmed: p.departureConfirmed ? new Date(p.departureConfirmed) : undefined,
-          scheduledDate: p.scheduledDate ? new Date(p.scheduledDate) : undefined
-        }));
-        setPlates(formattedPlates);
-        saveToStorage('plates', formattedPlates);
+      const apiUrl = getApiBaseUrl();
+      if (apiUrl) {
+        const response = await fetch(`${apiUrl}/api/plates`);
+        if (response.ok) {
+          const backendPlates = await response.json();
+          const formattedPlates = backendPlates.map((p: any) => ({
+            ...p,
+            createdAt: new Date(p.createdAt),
+            arrivalConfirmed: p.arrivalConfirmed ? new Date(p.arrivalConfirmed) : undefined,
+            departureConfirmed: p.departureConfirmed ? new Date(p.departureConfirmed) : undefined,
+            scheduledDate: p.scheduledDate ? new Date(p.scheduledDate) : undefined
+          }));
+          setPlates(formattedPlates);
+          saveToStorage('plates', formattedPlates);
+        }
       }
     } catch (error) {
-      console.error('Error loading plates from backend:', error);
+      console.log('🔄 Carregando placas do localStorage (modo offline)');
     }
   };
 
@@ -365,51 +367,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error('Data de agendamento não está dentro das janelas permitidas');
     }
 
-    try {
-      // Try to save to backend first
-      const response = await fetch(`${getApiBaseUrl()}/api/mark-plate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username: user.username,
-          password: passwords[user.username] || 'defaultPassword',
-          plate_number: plateNumber.toUpperCase(),
-          scheduled_date: scheduledDate?.toISOString(),
-          observations: observations?.trim()
-        })
-      });
+    // Usar apenas localStorage na Vercel
+    const newPlate: Plate = {
+      id: Date.now().toString(),
+      number: plateNumber.toUpperCase(),
+      transportadoraId: user.id,
+      createdAt: new Date(),
+      transportadoraName: user.name,
+      scheduledDate,
+      observations: observations?.trim() || undefined,
+    };
 
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          // Backend handled the plate addition and WebSocket will update UI
-          return true;
-        } else {
-          throw new Error(data.error || 'Erro ao cadastrar placa no servidor');
-        }
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Erro ao cadastrar placa no servidor');
-      }
-    } catch (error) {
-      console.error('Backend error, falling back to local storage:', error);
-      
-      // Fallback to local storage if backend fails
-      const newPlate: Plate = {
-        id: Date.now().toString(),
-        number: plateNumber.toUpperCase(),
-        transportadoraId: user.id,
-        createdAt: new Date(),
-        transportadoraName: user.name,
-        scheduledDate,
-        observations: observations?.trim() || undefined,
-      };
-
-      const updatedPlates = [...plates, newPlate];
-      setPlates(updatedPlates);
-      saveToStorage('plates', updatedPlates);
-      return true;
-    }
+    const updatedPlates = [...plates, newPlate];
+    setPlates(updatedPlates);
+    saveToStorage('plates', updatedPlates);
+    
+    // Simular notificação em tempo real para outros usuários na mesma sessão
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('plateAdded', { detail: newPlate }));
+    }, 100);
+    
+    return true;
   };
 
   const removePlate = (plateId: string) => {
@@ -436,41 +414,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const confirmArrival = async (plateId: string): Promise<boolean> => {
     if (!user || user.type !== 'portaria') return false;
 
-    try {
-      // Try to save to backend first
-      const response = await fetch(`${getApiBaseUrl()}/api/confirm-arrival/${plateId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username: user.username,
-          password: passwords[user.username] || 'defaultPassword'
-        })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          // Backend handled the confirmation and WebSocket will update UI
-          return true;
-        } else {
-          throw new Error(data.error || 'Erro ao confirmar chegada no servidor');
-        }
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Erro ao confirmar chegada no servidor');
-      }
-    } catch (error) {
-      console.error('Backend error, falling back to local storage:', error);
-      
-      // Fallback to local storage if backend fails
-      const updatedPlates = plates.map(p => 
-        p.id === plateId ? { ...p, arrivalConfirmed: new Date() } : p
-      );
-      
-      setPlates(updatedPlates);
-      saveToStorage('plates', updatedPlates);
-      return true;
+    // Usar apenas localStorage na Vercel
+    const updatedPlates = plates.map(p => 
+      p.id === plateId ? { ...p, arrivalConfirmed: new Date() } : p
+    );
+    
+    setPlates(updatedPlates);
+    saveToStorage('plates', updatedPlates);
+    
+    // Simular notificação em tempo real
+    const updatedPlate = updatedPlates.find(p => p.id === plateId);
+    if (updatedPlate) {
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('plateUpdated', { detail: updatedPlate }));
+      }, 100);
     }
+    
+    return true;
   };
 
   const confirmDeparture = async (plateId: string): Promise<boolean> => {
@@ -481,41 +441,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error('Confirmação de chegada é necessária antes da saída');
     }
 
-    try {
-      // Try to save to backend first
-      const response = await fetch(`${getApiBaseUrl()}/api/confirm-departure/${plateId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username: user.username,
-          password: passwords[user.username] || 'defaultPassword'
-        })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          // Backend handled the confirmation and WebSocket will update UI
-          return true;
-        } else {
-          throw new Error(data.error || 'Erro ao confirmar saída no servidor');
-        }
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Erro ao confirmar saída no servidor');
-      }
-    } catch (error) {
-      console.error('Backend error, falling back to local storage:', error);
-      
-      // Fallback to local storage if backend fails
-      const updatedPlates = plates.map(p => 
-        p.id === plateId ? { ...p, departureConfirmed: new Date() } : p
-      );
-      
-      setPlates(updatedPlates);
-      saveToStorage('plates', updatedPlates);
-      return true;
+    // Usar apenas localStorage na Vercel
+    const updatedPlates = plates.map(p => 
+      p.id === plateId ? { ...p, departureConfirmed: new Date() } : p
+    );
+    
+    setPlates(updatedPlates);
+    saveToStorage('plates', updatedPlates);
+    
+    // Simular notificação em tempo real
+    const updatedPlate = updatedPlates.find(p => p.id === plateId);
+    if (updatedPlate) {
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('plateUpdated', { detail: updatedPlate }));
+      }, 100);
     }
+    
+    return true;
   };
 
   const updateSystemConfig = (config: SystemConfig) => {

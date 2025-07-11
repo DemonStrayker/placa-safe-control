@@ -12,16 +12,20 @@ interface UseWebSocketReturn {
   reconnect: () => void;
 }
 
-// Use ngrok URL for WebSocket connection when in production
+// WebSocket não é suportado na Vercel (serverless)
+// Sistema adaptado para funcionar apenas com localStorage
 const getWebSocketUrl = () => {
-  // During development, use localhost
+  // Desabilitar WebSocket na produção (Vercel)
+  if (window.location.hostname.includes('vercel.app')) {
+    return null; // Não tentar conectar WebSocket na Vercel
+  }
+  
+  // Durante desenvolvimento, usar localhost
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
     return 'ws://localhost:8080';
   }
   
-  // TODO: Replace with your ngrok WebSocket URL
-  // Example: return 'wss://abc123-def456.ngrok-free.app';
-  return 'wss://YOUR_NGROK_WS_URL.ngrok-free.app';
+  return null; // Desabilitar por padrão
 };
 
 export const useWebSocket = (
@@ -43,7 +47,8 @@ export const useWebSocket = (
       const wsUrl = getWebSocketUrl();
       
       if (!wsUrl) {
-        setConnectionError('Configure o URL do ngrok no código');
+        console.log('🔄 WebSocket desabilitado na produção (Vercel)');
+        setConnectionError('Modo offline - WebSocket desabilitado na produção');
         return;
       }
       
