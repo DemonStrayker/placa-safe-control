@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useWebSocket } from '@/hooks/useWebSocket';
+import { toast } from '@/hooks/use-toast';
 
 export interface User {
   id: string;
@@ -88,6 +90,15 @@ const defaultPasswords: { [key: string]: string } = {
   'portaria': 'portaria123',
 };
 
+// API Base URL - use ngrok URL in production
+const getApiBaseUrl = () => {
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    return 'http://localhost:3000';
+  }
+  // TODO: Replace with your ngrok HTTP URL
+  return 'https://YOUR_NGROK_HTTP_URL.ngrok.io';
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [plates, setPlates] = useState<Plate[]>([]);
@@ -100,6 +111,69 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     allowedHours: { start: '08:00', end: '18:00' },
     allowedDays: [1, 2, 3, 4, 5], // Monday to Friday
   });
+
+  // WebSocket handlers
+  const handlePlateAdded = (plate: Plate) => {
+    setPlates(prev => {
+      const exists = prev.some(p => p.id === plate.id);
+      if (exists) return prev;
+      
+      const newPlates = [...prev, {
+        ...plate,
+        createdAt: new Date(plate.createdAt),
+        arrivalConfirmed: plate.arrivalConfirmed ? new Date(plate.arrivalConfirmed) : undefined,
+        departureConfirmed: plate.departureConfirmed ? new Date(plate.departureConfirmed) : undefined,
+        scheduledDate: plate.scheduledDate ? new Date(plate.scheduledDate) : undefined
+      }];
+      saveToStorage('plates', newPlates);
+      toast({
+        title: "Nova placa cadastrada",
+        description: `Placa ${plate.number} foi adicionada por ${plate.transportadoraName}`,
+      });
+      return newPlates;
+    });
+  };
+
+  const handlePlateUpdated = (plate: Plate) => {
+    setPlates(prev => {
+      const newPlates = prev.map(p => 
+        p.id === plate.id ? {
+          ...plate,
+          createdAt: new Date(plate.createdAt),
+          arrivalConfirmed: plate.arrivalConfirmed ? new Date(plate.arrivalConfirmed) : undefined,
+          departureConfirmed: plate.departureConfirmed ? new Date(plate.departureConfirmed) : undefined,
+          scheduledDate: plate.scheduledDate ? new Date(plate.scheduledDate) : undefined
+        } : p
+      );
+      saveToStorage('plates', newPlates);
+      
+      const action = plate.departureConfirmed ? 'saída confirmada' : 'chegada confirmada';
+      toast({
+        title: "Placa atualizada",
+        description: `Placa ${plate.number}: ${action}`,
+      });
+      return newPlates;
+    });
+  };
+
+  const handlePlateRemoved = (plateId: string) => {
+    setPlates(prev => {
+      const newPlates = prev.filter(p => p.id !== plateId);
+      saveToStorage('plates', newPlates);
+      toast({
+        title: "Placa removida",
+        description: "Uma placa foi removida do sistema",
+      });
+      return newPlates;
+    });
+  };
+
+  // Initialize WebSocket connection
+  const { isConnected, connectionError, reconnect } = useWebSocket(
+    handlePlateAdded,
+    handlePlateUpdated,
+    handlePlateRemoved
+  );
 
   useEffect(() => {
     // Load data from localStorage
@@ -162,14 +236,68 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const login = async (username: string, password: string): Promise<boolean> => {
-    const foundUser = allUsers.find(u => u.username === username);
-    
-    if (foundUser && passwords[username] === password) {
-      setUser(foundUser);
-      saveToStorage('user', foundUser);
-      return true;
+    try {
+      const response = await fetch(`${getApiBaseUrl()}/api/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.user) {
+          setUser(data.user);
+          saveToStorage('user', data.user);
+          
+          // Load plates from backend after successful login
+          await loadPlatesFromBackend();
+          return true;
+        }
+      }
+      
+      // Fallback to local authentication if backend is not available
+      const foundUser = allUsers.find(u => u.username === username);
+      if (foundUser && passwords[username] === password) {
+        setUser(foundUser);
+        saveToStorage('user', foundUser);
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Login error, falling back to local auth:', error);
+      
+      // Fallback to local authentication
+      const foundUser = allUsers.find(u => u.username === username);
+      if (foundUser && passwords[username] === password) {
+        setUser(foundUser);
+        saveToStorage('user', foundUser);
+        return true;
+      }
+      
+      return false;
     }
-    return false;
+  };
+
+  // Load plates from backend
+  const loadPlatesFromBackend = async () => {
+    try {
+      const response = await fetch(`${getApiBaseUrl()}/api/plates`);
+      if (response.ok) {
+        const backendPlates = await response.json();
+        const formattedPlates = backendPlates.map((p: any) => ({
+          ...p,
+          createdAt: new Date(p.createdAt),
+          arrivalConfirmed: p.arrivalConfirmed ? new Date(p.arrivalConfirmed) : undefined,
+          departureConfirmed: p.departureConfirmed ? new Date(p.departureConfirmed) : undefined,
+          scheduledDate: p.scheduledDate ? new Date(p.scheduledDate) : undefined
+        }));
+        setPlates(formattedPlates);
+        saveToStorage('plates', formattedPlates);
+      }
+    } catch (error) {
+      console.error('Error loading plates from backend:', error);
+    }
   };
 
   const logout = () => {
@@ -218,7 +346,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error('Cadastro de placas não permitido neste horário/dia');
     }
 
-    // Check if plate already exists
+    // Check if plate already exists locally
     if (plates.some(p => p.number === plateNumber.toUpperCase())) {
       throw new Error('Esta placa já está cadastrada');
     }
@@ -231,31 +359,56 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error(`Limite de ${maxPlates} placas atingido`);
     }
 
-    // Check total system limit (now calculated dynamically)
-    const totalAvailableTrips = getTotalAvailableTrips();
-    if (plates.length >= totalAvailableTrips) {
-      throw new Error(`Limite total de viagens do sistema atingido (${totalAvailableTrips} viagens disponíveis)`);
-    }
-
     // Validate scheduled date if provided
     if (scheduledDate && !isDateWithinSchedulingWindows(scheduledDate)) {
       throw new Error('Data de agendamento não está dentro das janelas permitidas');
     }
 
-    const newPlate: Plate = {
-      id: Date.now().toString(),
-      number: plateNumber.toUpperCase(),
-      transportadoraId: user.id,
-      createdAt: new Date(),
-      transportadoraName: user.name,
-      scheduledDate,
-      observations: observations?.trim() || undefined,
-    };
+    try {
+      // Try to save to backend first
+      const response = await fetch(`${getApiBaseUrl()}/api/mark-plate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: user.username,
+          password: passwords[user.username] || 'defaultPassword',
+          plate_number: plateNumber.toUpperCase(),
+          scheduled_date: scheduledDate?.toISOString(),
+          observations: observations?.trim()
+        })
+      });
 
-    const updatedPlates = [...plates, newPlate];
-    setPlates(updatedPlates);
-    saveToStorage('plates', updatedPlates);
-    return true;
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          // Backend handled the plate addition and WebSocket will update UI
+          return true;
+        } else {
+          throw new Error(data.error || 'Erro ao cadastrar placa no servidor');
+        }
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erro ao cadastrar placa no servidor');
+      }
+    } catch (error) {
+      console.error('Backend error, falling back to local storage:', error);
+      
+      // Fallback to local storage if backend fails
+      const newPlate: Plate = {
+        id: Date.now().toString(),
+        number: plateNumber.toUpperCase(),
+        transportadoraId: user.id,
+        createdAt: new Date(),
+        transportadoraName: user.name,
+        scheduledDate,
+        observations: observations?.trim() || undefined,
+      };
+
+      const updatedPlates = [...plates, newPlate];
+      setPlates(updatedPlates);
+      saveToStorage('plates', updatedPlates);
+      return true;
+    }
   };
 
   const removePlate = (plateId: string) => {
@@ -282,13 +435,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const confirmArrival = async (plateId: string): Promise<boolean> => {
     if (!user || user.type !== 'portaria') return false;
 
-    const updatedPlates = plates.map(p => 
-      p.id === plateId ? { ...p, arrivalConfirmed: new Date() } : p
-    );
-    
-    setPlates(updatedPlates);
-    saveToStorage('plates', updatedPlates);
-    return true;
+    try {
+      // Try to save to backend first
+      const response = await fetch(`${getApiBaseUrl()}/api/confirm-arrival/${plateId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: user.username,
+          password: passwords[user.username] || 'defaultPassword'
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          // Backend handled the confirmation and WebSocket will update UI
+          return true;
+        } else {
+          throw new Error(data.error || 'Erro ao confirmar chegada no servidor');
+        }
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erro ao confirmar chegada no servidor');
+      }
+    } catch (error) {
+      console.error('Backend error, falling back to local storage:', error);
+      
+      // Fallback to local storage if backend fails
+      const updatedPlates = plates.map(p => 
+        p.id === plateId ? { ...p, arrivalConfirmed: new Date() } : p
+      );
+      
+      setPlates(updatedPlates);
+      saveToStorage('plates', updatedPlates);
+      return true;
+    }
   };
 
   const confirmDeparture = async (plateId: string): Promise<boolean> => {
@@ -299,13 +480,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error('Confirmação de chegada é necessária antes da saída');
     }
 
-    const updatedPlates = plates.map(p => 
-      p.id === plateId ? { ...p, departureConfirmed: new Date() } : p
-    );
-    
-    setPlates(updatedPlates);
-    saveToStorage('plates', updatedPlates);
-    return true;
+    try {
+      // Try to save to backend first
+      const response = await fetch(`${getApiBaseUrl()}/api/confirm-departure/${plateId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: user.username,
+          password: passwords[user.username] || 'defaultPassword'
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          // Backend handled the confirmation and WebSocket will update UI
+          return true;
+        } else {
+          throw new Error(data.error || 'Erro ao confirmar saída no servidor');
+        }
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erro ao confirmar saída no servidor');
+      }
+    } catch (error) {
+      console.error('Backend error, falling back to local storage:', error);
+      
+      // Fallback to local storage if backend fails
+      const updatedPlates = plates.map(p => 
+        p.id === plateId ? { ...p, departureConfirmed: new Date() } : p
+      );
+      
+      setPlates(updatedPlates);
+      saveToStorage('plates', updatedPlates);
+      return true;
+    }
   };
 
   const updateSystemConfig = (config: SystemConfig) => {

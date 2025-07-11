@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Truck, Plus, Trash2, LogOut, Clock, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 import SchedulingPicker from '@/components/SchedulingPicker';
+import WebSocketStatus from '@/components/WebSocketStatus';
 
 const TransportadoraDashboard = () => {
   const { user, logout, addPlate, removePlate, getAllPlates, systemConfig, schedulingWindows, getTotalAvailableTrips } = useAuth();
@@ -74,14 +75,17 @@ const TransportadoraDashboard = () => {
               </p>
             </div>
           </div>
-          <Button
-            onClick={logout}
-            variant="outline"
-            className="flex items-center gap-2"
-          >
-            <LogOut className="w-4 h-4" />
-            Sair
-          </Button>
+          <div className="flex items-center gap-4">
+            <WebSocketStatus />
+            <Button
+              onClick={logout}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <LogOut className="w-4 h-4" />
+              Sair
+            </Button>
+          </div>
         </div>
 
         {/* System Info */}
