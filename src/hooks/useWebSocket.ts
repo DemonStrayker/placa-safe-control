@@ -19,9 +19,9 @@ const getWebSocketUrl = () => {
     return 'ws://localhost:8080';
   }
   
-  // In production (Vercel), use ngrok URL
-  // TODO: Replace with your actual ngrok WebSocket URL
-  return 'wss://YOUR_NGROK_WS_URL.ngrok.io';
+  // In production (Vercel), try to connect to a common WebSocket service
+  // For now, disable WebSocket in production until backend is configured
+  return null;
 };
 
 export const useWebSocket = (
@@ -41,6 +41,12 @@ export const useWebSocket = (
   const connect = () => {
     try {
       const wsUrl = getWebSocketUrl();
+      
+      if (!wsUrl) {
+        setConnectionError('Modo offline - WebSocket desabilitado na produção');
+        return;
+      }
+      
       console.log('🔗 Conectando ao WebSocket:', wsUrl);
       
       wsRef.current = new WebSocket(wsUrl);
