@@ -11,7 +11,7 @@ import SchedulingPicker from '@/components/SchedulingPicker';
 import { SupabaseStatus } from '@/components/SupabaseStatus';
 
 const TransportadoraDashboard = () => {
-  const { user, logout, addPlate, removePlate, getAllPlates, systemConfig, schedulingWindows, getTotalAvailableTrips } = useAuth();
+  const { user, logout, addPlate, removePlate, getAllPlates, systemConfig, schedulingWindows, transportadoras } = useAuth();
   const [newPlate, setNewPlate] = useState('');
   const [scheduledDateTime, setScheduledDateTime] = useState<Date | null>(null);
   const [observations, setObservations] = useState('');
@@ -19,7 +19,11 @@ const TransportadoraDashboard = () => {
   
   const userPlates = getAllPlates();
   const maxPlates = user?.maxPlates || systemConfig.maxPlatesPerTransportadora;
-  const totalAvailableTrips = getTotalAvailableTrips();
+  
+  // Calcular total dinamicamente
+  const totalAvailableTrips = transportadoras.reduce((total, transportadora) => {
+    return total + (transportadora.maxPlates || systemConfig.maxPlatesPerTransportadora);
+  }, 0);
 
   const handleAddPlate = async (e: React.FormEvent) => {
     e.preventDefault();

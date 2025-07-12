@@ -14,8 +14,16 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({
   systemConfig,
   transportadoras
 }) => {
-  const { getTotalAvailableTrips } = useAuth();
-  const totalAvailableTrips = getTotalAvailableTrips();
+  // Calcular total dinamicamente baseado nas transportadoras
+  const totalAvailableTrips = transportadoras.reduce((total, transportadora) => {
+    return total + (transportadora.maxPlates || systemConfig.maxPlatesPerTransportadora);
+  }, 0);
+  
+  console.log('📊 DashboardStats - Transportadoras:', transportadoras.map(t => ({ 
+    name: t.name, 
+    maxPlates: t.maxPlates 
+  })));
+  console.log('📊 DashboardStats - Total calculado:', totalAvailableTrips);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
