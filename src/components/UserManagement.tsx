@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/SupabaseAuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,7 +12,7 @@ import { Plus, Edit, Trash2, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 
 const UserManagement = () => {
-  const { allUsers, addUser, updateUser, updateUserPassword, removeUser } = useAuth();
+  const { allUsers, addUser, updateUser, removeUser } = useAuth();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
@@ -94,22 +94,8 @@ const UserManagement = () => {
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedUser) return;
-
-    setLoading(true);
-
-    try {
-      await updateUserPassword(selectedUser.id, passwordForm.newPassword);
-      toast.success(`Senha do usuário "${selectedUser.name}" atualizada com sucesso! As alterações foram salvas permanentemente.`);
-      setIsPasswordDialogOpen(false);
-      setSelectedUser(null);
-      setPasswordForm({ newPassword: '' });
-    } catch (error) {
-      console.error('Erro detalhado ao atualizar senha:', error);
-      toast.error(`Erro ao atualizar senha: ${error instanceof Error ? error.message : 'Erro desconhecido'}. Verifique o console para mais detalhes.`);
-    } finally {
-      setLoading(false);
-    }
+    toast.info('Funcionalidade de alteração de senha não implementada no Supabase ainda.');
+    setIsPasswordDialogOpen(false);
   };
 
   const handleDeleteUser = async (user: any) => {
@@ -219,7 +205,8 @@ const UserManagement = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => openPasswordDialog(user)}
+                      onClick={() => toast.info('Funcionalidade indisponível')}
+                      disabled
                     >
                       Senha
                     </Button>

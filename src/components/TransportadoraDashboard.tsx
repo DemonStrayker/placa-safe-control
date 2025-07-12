@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/SupabaseAuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Truck, Plus, Trash2, LogOut, Clock, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 import SchedulingPicker from '@/components/SchedulingPicker';
-import WebSocketStatus from '@/components/WebSocketStatus';
+import { SupabaseStatus } from '@/components/SupabaseStatus';
 
 const TransportadoraDashboard = () => {
   const { user, logout, addPlate, removePlate, getAllPlates, systemConfig, schedulingWindows, getTotalAvailableTrips } = useAuth();
@@ -76,7 +76,7 @@ const TransportadoraDashboard = () => {
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <WebSocketStatus />
+            <SupabaseStatus />
             <Button
               onClick={logout}
               variant="outline"

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/SupabaseAuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Shield, LogOut, CheckCircle, XCircle, Clock, ArrowUp, ArrowDown, Search, Filter } from 'lucide-react';
 import { toast } from 'sonner';
 import PDFReport from '@/components/PDFReport';
+import { SupabaseStatus } from '@/components/SupabaseStatus';
 
 const PortariaDashboard = () => {
   const { user, logout, getAllPlates, confirmArrival, confirmDeparture } = useAuth();
@@ -81,14 +82,17 @@ const PortariaDashboard = () => {
               </p>
             </div>
           </div>
-          <Button
-            onClick={logout}
-            variant="outline"
-            className="flex items-center gap-2"
-          >
-            <LogOut className="w-4 h-4" />
-            Sair
-          </Button>
+          <div className="flex items-center gap-4">
+            <SupabaseStatus />
+            <Button
+              onClick={logout}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <LogOut className="w-4 h-4" />
+              Sair
+            </Button>
+          </div>
         </div>
 
         {/* Statistics */}

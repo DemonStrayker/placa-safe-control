@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Truck, Users, Clock, Calendar } from 'lucide-react';
-import { SystemConfig, Plate, User, useAuth } from '@/contexts/AuthContext';
+import { SystemConfig, Plate, User, useAuth } from '@/contexts/SupabaseAuthContext';
 
 interface DashboardStatsProps {
   allPlates: Plate[];

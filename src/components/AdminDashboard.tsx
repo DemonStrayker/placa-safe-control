@@ -1,8 +1,9 @@
 import React from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/SupabaseAuthContext';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Shield, LogOut, FileText, Settings, UserCog } from 'lucide-react';
+import { SupabaseStatus } from '@/components/SupabaseStatus';
 import UserManagement from '@/components/UserManagement';
 import DashboardStats from '@/components/admin/DashboardStats';
 import ReportsTab from '@/components/admin/ReportsTab';
@@ -39,14 +40,17 @@ const AdminDashboard = () => {
               </p>
             </div>
           </div>
-          <Button
-            onClick={logout}
-            variant="outline"
-            className="flex items-center gap-2"
-          >
-            <LogOut className="w-4 h-4" />
-            Sair
-          </Button>
+          <div className="flex items-center gap-4">
+            <SupabaseStatus />
+            <Button
+              onClick={logout}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <LogOut className="w-4 h-4" />
+              Sair
+            </Button>
+          </div>
         </div>
 
         {/* Statistics */}

@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { SystemConfig, useAuth } from '@/contexts/AuthContext';
+import { SystemConfig, useAuth } from '@/contexts/SupabaseAuthContext';
 import SchedulingManagement from '@/components/SchedulingManagement';
 import TestDataManager from '@/components/TestDataManager';
 import { Settings, CalendarCheck, TrendingUp, TestTube } from 'lucide-react';

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import jsPDF from 'jspdf';
-import { useAuth, Plate } from '@/contexts/AuthContext';
+import { useAuth, Plate } from '@/contexts/SupabaseAuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
