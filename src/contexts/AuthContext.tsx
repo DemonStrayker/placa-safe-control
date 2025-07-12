@@ -636,7 +636,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // New helper functions
   const getTotalAvailableTrips = (): number => {
-    return allUsers
+    return transportadoras
       .filter(u => u.type === 'transportadora')
       .reduce((total, user) => total + (user.maxPlates || systemConfig.maxPlatesPerTransportadora), 0);
   };
