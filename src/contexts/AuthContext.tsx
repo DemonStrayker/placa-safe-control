@@ -636,9 +636,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // New helper functions
   const getTotalAvailableTrips = (): number => {
-    return transportadoras
-      .filter(u => u.type === 'transportadora')
-      .reduce((total, user) => total + (user.maxPlates || systemConfig.maxPlatesPerTransportadora), 0);
+    const transportadorasAtivas = allUsers.filter(u => u.type === 'transportadora');
+    return transportadorasAtivas.reduce((total, user) => {
+      return total + (user.maxPlates || systemConfig.maxPlatesPerTransportadora);
+    }, 0);
   };
 
   const getAvailableSchedulingDates = (): { date: Date, timeSlots: string[] }[] => {
