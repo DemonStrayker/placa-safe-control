@@ -169,8 +169,8 @@ const PortariaDashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex gap-4 items-end">
-              <div className="flex-1">
+            <div className="flex flex-col lg:flex-row gap-4 lg:items-end">
+              <div className="flex-1 min-w-0">
                 <Label htmlFor="search">Buscar por placa ou transportadora</Label>
                 <div className="relative">
                   <Search className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
@@ -184,11 +184,12 @@ const PortariaDashboard = () => {
                 </div>
               </div>
               
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2 lg:flex-nowrap">
                 <Button
                   variant={statusFilter === 'all' ? 'default' : 'outline'}
                   onClick={() => setStatusFilter('all')}
                   size="sm"
+                  className="flex-1 sm:flex-none min-w-0"
                 >
                   Todos
                 </Button>
@@ -196,6 +197,7 @@ const PortariaDashboard = () => {
                   variant={statusFilter === 'pending' ? 'default' : 'outline'}
                   onClick={() => setStatusFilter('pending')}
                   size="sm"
+                  className="flex-1 sm:flex-none min-w-0"
                 >
                   Pendentes
                 </Button>
@@ -203,6 +205,7 @@ const PortariaDashboard = () => {
                   variant={statusFilter === 'arrived' ? 'default' : 'outline'}
                   onClick={() => setStatusFilter('arrived')}
                   size="sm"
+                  className="flex-1 sm:flex-none min-w-0"
                 >
                   Presentes
                 </Button>
@@ -210,6 +213,7 @@ const PortariaDashboard = () => {
                   variant={statusFilter === 'departed' ? 'default' : 'outline'}
                   onClick={() => setStatusFilter('departed')}
                   size="sm"
+                  className="flex-1 sm:flex-none min-w-0"
                 >
                   Saíram
                 </Button>
