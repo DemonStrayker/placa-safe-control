@@ -230,111 +230,225 @@ const PortariaDashboard = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Placa</TableHead>
-                    <TableHead>Transportadora</TableHead>
-                    <TableHead>Data Cadastro</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Chegada</TableHead>
-                    <TableHead>Saída</TableHead>
-                    <TableHead>Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredPlates.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={7} className="text-center py-12 text-gray-500">
-                        <Shield className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                        <p>Nenhuma placa encontrada</p>
-                        <p className="text-sm">Ajuste os filtros para ver mais resultados</p>
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredPlates.map((plate) => (
-                      <TableRow key={plate.id}>
-                        <TableCell className="font-mono font-bold">
-                          {formatPlate(plate.number)}
-                        </TableCell>
-                        <TableCell>{plate.transportadoraName}</TableCell>
-                        <TableCell>
-                          {plate.createdAt.toLocaleDateString('pt-BR')} às{' '}
-                          {plate.createdAt.toLocaleTimeString('pt-BR', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </TableCell>
-                        <TableCell>{getStatusBadge(plate)}</TableCell>
-                        <TableCell>
-                          {plate.arrivalConfirmed ? (
-                            <div className="text-sm">
-                              <div className="font-medium text-green-600">Confirmada</div>
-                              <div className="text-gray-500">
-                                {plate.arrivalConfirmed.toLocaleDateString('pt-BR')} às{' '}
-                                {plate.arrivalConfirmed.toLocaleTimeString('pt-BR', {
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                })}
+            {filteredPlates.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                <Shield className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>Nenhuma placa encontrada</p>
+                <p className="text-sm">Ajuste os filtros para ver mais resultados</p>
+              </div>
+            ) : (
+              <>
+                {/* Desktop Table - Hidden on mobile */}
+                <div className="hidden lg:block rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Placa</TableHead>
+                        <TableHead>Transportadora</TableHead>
+                        <TableHead>Data Cadastro</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Chegada</TableHead>
+                        <TableHead>Saída</TableHead>
+                        <TableHead>Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredPlates.map((plate) => (
+                        <TableRow key={plate.id}>
+                          <TableCell className="font-mono font-bold">
+                            {formatPlate(plate.number)}
+                          </TableCell>
+                          <TableCell>{plate.transportadoraName}</TableCell>
+                          <TableCell>
+                            {plate.createdAt.toLocaleDateString('pt-BR')} às{' '}
+                            {plate.createdAt.toLocaleTimeString('pt-BR', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </TableCell>
+                          <TableCell>{getStatusBadge(plate)}</TableCell>
+                          <TableCell>
+                            {plate.arrivalConfirmed ? (
+                              <div className="text-sm">
+                                <div className="font-medium text-green-600">Confirmada</div>
+                                <div className="text-gray-500">
+                                  {plate.arrivalConfirmed.toLocaleDateString('pt-BR')} às{' '}
+                                  {plate.arrivalConfirmed.toLocaleTimeString('pt-BR', {
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                  })}
+                                </div>
                               </div>
-                            </div>
-                          ) : (
-                            <span className="text-gray-400">Pendente</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {plate.departureConfirmed ? (
-                            <div className="text-sm">
-                              <div className="font-medium text-gray-600">Confirmada</div>
-                              <div className="text-gray-500">
-                                {plate.departureConfirmed.toLocaleDateString('pt-BR')} às{' '}
-                                {plate.departureConfirmed.toLocaleTimeString('pt-BR', {
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                })}
+                            ) : (
+                              <span className="text-gray-400">Pendente</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {plate.departureConfirmed ? (
+                              <div className="text-sm">
+                                <div className="font-medium text-gray-600">Confirmada</div>
+                                <div className="text-gray-500">
+                                  {plate.departureConfirmed.toLocaleDateString('pt-BR')} às{' '}
+                                  {plate.departureConfirmed.toLocaleTimeString('pt-BR', {
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                  })}
+                                </div>
                               </div>
+                            ) : (
+                              <span className="text-gray-400">Pendente</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              {!plate.arrivalConfirmed && (
+                                <Button
+                                  onClick={() => handleConfirmArrival(plate.id)}
+                                  size="sm"
+                                  className="bg-green-600 hover:bg-green-700 text-white"
+                                >
+                                  <ArrowDown className="w-4 h-4 mr-1" />
+                                  Chegada
+                                </Button>
+                              )}
+                              {plate.arrivalConfirmed && !plate.departureConfirmed && (
+                                <Button
+                                  onClick={() => handleConfirmDeparture(plate.id)}
+                                  size="sm"
+                                  variant="outline"
+                                  className="border-gray-600 text-gray-600 hover:bg-gray-50"
+                                >
+                                  <ArrowUp className="w-4 h-4 mr-1" />
+                                  Saída
+                                </Button>
+                              )}
+                              {plate.departureConfirmed && (
+                                <Badge variant="secondary" className="bg-gray-100 text-gray-600">
+                                  Finalizada
+                                </Badge>
+                              )}
                             </div>
-                          ) : (
-                            <span className="text-gray-400">Pendente</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            {!plate.arrivalConfirmed && (
-                              <Button
-                                onClick={() => handleConfirmArrival(plate.id)}
-                                size="sm"
-                                className="bg-green-600 hover:bg-green-700 text-white"
-                              >
-                                <ArrowDown className="w-4 h-4 mr-1" />
-                                Chegada
-                              </Button>
-                            )}
-                            {plate.arrivalConfirmed && !plate.departureConfirmed && (
-                              <Button
-                                onClick={() => handleConfirmDeparture(plate.id)}
-                                size="sm"
-                                variant="outline"
-                                className="border-gray-600 text-gray-600 hover:bg-gray-50"
-                              >
-                                <ArrowUp className="w-4 h-4 mr-1" />
-                                Saída
-                              </Button>
-                            )}
-                            {plate.departureConfirmed && (
-                              <Badge variant="secondary" className="bg-gray-100 text-gray-600">
-                                Finalizada
-                              </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Mobile Cards - Shown on mobile and tablet */}
+                <div className="lg:hidden space-y-4">
+                  {filteredPlates.map((plate, index) => (
+                    <Card
+                      key={plate.id}
+                      className="animate-fade-in"
+                      style={{ animationDelay: `${index * 0.1}s` }}
+                    >
+                      <CardContent className="p-4">
+                        <div className="space-y-3">
+                          {/* Header with plate number and status */}
+                          <div className="flex items-center justify-between">
+                            <div className="font-mono text-lg font-bold text-gray-900">
+                              {formatPlate(plate.number)}
+                            </div>
+                            {getStatusBadge(plate)}
+                          </div>
+
+                          {/* Transportadora */}
+                          <div>
+                            <p className="text-sm text-gray-600">Transportadora</p>
+                            <p className="font-medium text-gray-900">{plate.transportadoraName}</p>
+                          </div>
+
+                          {/* Registration date */}
+                          <div>
+                            <p className="text-sm text-gray-600">Data de Cadastro</p>
+                            <p className="text-sm text-gray-900">
+                              {plate.createdAt.toLocaleDateString('pt-BR')} às{' '}
+                              {plate.createdAt.toLocaleTimeString('pt-BR', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </p>
+                          </div>
+
+                          {/* Arrival status */}
+                          <div>
+                            <p className="text-sm text-gray-600">Chegada</p>
+                            {plate.arrivalConfirmed ? (
+                              <div className="text-sm">
+                                <div className="font-medium text-green-600">Confirmada</div>
+                                <div className="text-gray-500">
+                                  {plate.arrivalConfirmed.toLocaleDateString('pt-BR')} às{' '}
+                                  {plate.arrivalConfirmed.toLocaleTimeString('pt-BR', {
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                  })}
+                                </div>
+                              </div>
+                            ) : (
+                              <span className="text-gray-400 text-sm">Pendente</span>
                             )}
                           </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
+
+                          {/* Departure status */}
+                          <div>
+                            <p className="text-sm text-gray-600">Saída</p>
+                            {plate.departureConfirmed ? (
+                              <div className="text-sm">
+                                <div className="font-medium text-gray-600">Confirmada</div>
+                                <div className="text-gray-500">
+                                  {plate.departureConfirmed.toLocaleDateString('pt-BR')} às{' '}
+                                  {plate.departureConfirmed.toLocaleTimeString('pt-BR', {
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                  })}
+                                </div>
+                              </div>
+                            ) : (
+                              <span className="text-gray-400 text-sm">Pendente</span>
+                            )}
+                          </div>
+
+                          {/* Action buttons */}
+                          <div className="pt-2 border-t border-gray-200">
+                            <div className="flex gap-2 flex-wrap">
+                              {!plate.arrivalConfirmed && (
+                                <Button
+                                  onClick={() => handleConfirmArrival(plate.id)}
+                                  size="sm"
+                                  className="bg-green-600 hover:bg-green-700 text-white flex-1 min-w-0"
+                                >
+                                  <ArrowDown className="w-4 h-4 mr-1" />
+                                  Confirmar Chegada
+                                </Button>
+                              )}
+                              {plate.arrivalConfirmed && !plate.departureConfirmed && (
+                                <Button
+                                  onClick={() => handleConfirmDeparture(plate.id)}
+                                  size="sm"
+                                  variant="outline"
+                                  className="border-gray-600 text-gray-600 hover:bg-gray-50 flex-1 min-w-0"
+                                >
+                                  <ArrowUp className="w-4 h-4 mr-1" />
+                                  Confirmar Saída
+                                </Button>
+                              )}
+                              {plate.departureConfirmed && (
+                                <div className="flex-1 flex justify-center">
+                                  <Badge variant="secondary" className="bg-gray-100 text-gray-600">
+                                    Processo Finalizado
+                                  </Badge>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
