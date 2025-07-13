@@ -34,22 +34,26 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
   return (
     <div className="space-y-6">
       <Tabs defaultValue="general" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="general" className="flex items-center gap-2">
-            <Settings className="w-4 h-4" />
-            Geral
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto">
+          <TabsTrigger value="general" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 py-2 px-2 text-xs sm:text-sm">
+            <Settings className="w-3 h-3 sm:w-4 sm:h-4" />
+            <span className="hidden sm:inline">Geral</span>
+            <span className="sm:hidden">Geral</span>
           </TabsTrigger>
-          <TabsTrigger value="scheduling" className="flex items-center gap-2">
-            <CalendarCheck className="w-4 h-4" />
-            Agendamentos
+          <TabsTrigger value="scheduling" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 py-2 px-2 text-xs sm:text-sm">
+            <CalendarCheck className="w-3 h-3 sm:w-4 sm:h-4" />
+            <span className="hidden sm:inline">Agendamentos</span>
+            <span className="sm:hidden">Agenda</span>
           </TabsTrigger>
-          <TabsTrigger value="trips" className="flex items-center gap-2">
-            <TrendingUp className="w-4 h-4" />
-            Viagens
+          <TabsTrigger value="trips" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 py-2 px-2 text-xs sm:text-sm">
+            <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4" />
+            <span className="hidden sm:inline">Viagens</span>
+            <span className="sm:hidden">Viagens</span>
           </TabsTrigger>
-          <TabsTrigger value="testing" className="flex items-center gap-2">
-            <TestTube className="w-4 h-4" />
-            Testes
+          <TabsTrigger value="testing" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 py-2 px-2 text-xs sm:text-sm">
+            <TestTube className="w-3 h-3 sm:w-4 sm:h-4" />
+            <span className="hidden sm:inline">Testes</span>
+            <span className="sm:hidden">Testes</span>
           </TabsTrigger>
         </TabsList>
 
@@ -76,16 +80,16 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
                 </p>
               </div>
               
-              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                <div className="flex items-center gap-2 mb-2">
-                  <TrendingUp className="w-5 h-5 text-blue-600" />
-                  <span className="font-medium text-blue-900">Total Dinâmico de Viagens</span>
-                </div>
-                <p className="text-2xl font-bold text-blue-600">{totalDynamicTrips}</p>
-                <p className="text-sm text-blue-700">
-                  Calculado automaticamente com base nos limites individuais das transportadoras
-                </p>
-              </div>
+               <div className="p-3 sm:p-4 bg-blue-50 rounded-lg border border-blue-200">
+                 <div className="flex items-center gap-2 mb-2">
+                   <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
+                   <span className="font-medium text-sm sm:text-base text-blue-900">Total Dinâmico de Viagens</span>
+                 </div>
+                 <p className="text-xl sm:text-2xl font-bold text-blue-600">{totalDynamicTrips}</p>
+                 <p className="text-xs sm:text-sm text-blue-700">
+                   Calculado automaticamente com base nos limites individuais das transportadoras
+                 </p>
+               </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -110,17 +114,17 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-medium text-gray-900">Total de Viagens Disponíveis</h3>
-                      <p className="text-sm text-gray-600">Soma automática dos limites individuais</p>
-                    </div>
-                    <Badge variant="secondary" className="text-lg px-4 py-2">
-                      {totalDynamicTrips}
-                    </Badge>
-                  </div>
-                </div>
+                 <div className="p-3 sm:p-4 bg-gray-50 rounded-lg">
+                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                     <div className="min-w-0 flex-1">
+                       <h3 className="font-medium text-gray-900">Total de Viagens Disponíveis</h3>
+                       <p className="text-xs sm:text-sm text-gray-600">Soma automática dos limites individuais</p>
+                     </div>
+                     <Badge variant="secondary" className="text-base sm:text-lg px-3 sm:px-4 py-1 sm:py-2 flex-shrink-0">
+                       {totalDynamicTrips}
+                     </Badge>
+                   </div>
+                 </div>
 
                 <div className="space-y-3">
                   <h4 className="font-medium text-gray-900">Limites por Transportadora</h4>
@@ -129,35 +133,35 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
                       Nenhuma transportadora cadastrada
                     </p>
                   ) : (
-                    <div className="grid gap-3">
-                      {transportadoras.map((transportadora) => (
-                        <div
-                          key={transportadora.id}
-                          className="flex items-center justify-between p-3 border rounded-lg"
-                        >
-                          <div>
-                            <p className="font-medium text-gray-900">{transportadora.name}</p>
-                            <p className="text-sm text-gray-600">@{transportadora.username}</p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm text-gray-600">Limite:</span>
-                            <Badge variant="outline">
-                              {transportadora.maxPlates || systemConfig.maxPlatesPerTransportadora} viagens
-                            </Badge>
-                          </div>
-                        </div>
-                      ))}
+                     <div className="grid gap-3">
+                       {transportadoras.map((transportadora) => (
+                         <div
+                           key={transportadora.id}
+                           className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4 p-3 border rounded-lg"
+                         >
+                           <div className="min-w-0 flex-1">
+                             <p className="font-medium text-gray-900 truncate">{transportadora.name}</p>
+                             <p className="text-sm text-gray-600 truncate">@{transportadora.username}</p>
+                           </div>
+                           <div className="flex items-center gap-2 flex-shrink-0">
+                             <span className="text-xs sm:text-sm text-gray-600">Limite:</span>
+                             <Badge variant="outline" className="text-xs">
+                               {transportadora.maxPlates || systemConfig.maxPlatesPerTransportadora} viagens
+                             </Badge>
+                           </div>
+                         </div>
+                       ))}
                     </div>
                   )}
                 </div>
 
-                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <p className="text-sm text-blue-700">
-                    <strong>Como funciona:</strong> O total de viagens disponíveis no sistema é calculado automaticamente 
-                    como a soma dos limites individuais de cada transportadora. Para aumentar ou diminuir o total, 
-                    ajuste os limites individuais na seção "Usuários".
-                  </p>
-                </div>
+                 <div className="p-3 sm:p-4 bg-blue-50 rounded-lg border border-blue-200">
+                   <p className="text-xs sm:text-sm text-blue-700">
+                     <strong>Como funciona:</strong> O total de viagens disponíveis no sistema é calculado automaticamente 
+                     como a soma dos limites individuais de cada transportadora. Para aumentar ou diminuir o total, 
+                     ajuste os limites individuais na seção "Usuários".
+                   </p>
+                 </div>
               </div>
             </CardContent>
           </Card>

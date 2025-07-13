@@ -65,44 +65,45 @@ const TransportadoraDashboard = () => {
     <div className="min-h-screen bg-gradient-to-br from-transport-50 to-transport-100 p-4">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-transport-500 rounded-lg text-white">
               <Truck className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
                 Dashboard - {user?.name}
               </h1>
-              <p className="text-gray-600">
+              <p className="text-sm sm:text-base text-gray-600">
                 Gerencie suas placas de veículos
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             <SupabaseStatus />
             <Button
               onClick={logout}
               variant="outline"
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 text-sm"
+              size="sm"
             >
               <LogOut className="w-4 h-4" />
-              Sair
+              <span className="hidden sm:inline">Sair</span>
             </Button>
           </div>
         </div>
 
         {/* System Info */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <Truck className="w-5 h-5 text-green-600" />
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="p-1.5 sm:p-2 bg-green-100 rounded-lg">
+                  <Truck className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
                 </div>
-                <div>
-                  <p className="text-sm text-gray-600">Placas Cadastradas</p>
-                  <p className="text-2xl font-bold text-gray-900">
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs sm:text-sm text-gray-600 truncate">Placas Cadastradas</p>
+                  <p className="text-lg sm:text-2xl font-bold text-gray-900">
                     {userPlates.length}/{maxPlates}
                   </p>
                 </div>
@@ -111,14 +112,14 @@ const TransportadoraDashboard = () => {
           </Card>
 
           <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <Clock className="w-5 h-5 text-blue-600" />
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="p-1.5 sm:p-2 bg-blue-100 rounded-lg">
+                  <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                 </div>
-                <div>
-                  <p className="text-sm text-gray-600">Horário Permitido</p>
-                  <p className="text-lg font-semibold text-gray-900">
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs sm:text-sm text-gray-600 truncate">Horário Permitido</p>
+                  <p className="text-sm sm:text-lg font-semibold text-gray-900">
                     {systemConfig.allowedHours.start} - {systemConfig.allowedHours.end}
                   </p>
                 </div>
@@ -126,15 +127,15 @@ const TransportadoraDashboard = () => {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-purple-100 rounded-lg">
-                  <Calendar className="w-5 h-5 text-purple-600" />
+          <Card className="sm:col-span-2 lg:col-span-1">
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="p-1.5 sm:p-2 bg-purple-100 rounded-lg">
+                  <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
                 </div>
-                <div>
-                  <p className="text-sm text-gray-600">Dias Permitidos</p>
-                  <p className="text-sm font-medium text-gray-900">
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs sm:text-sm text-gray-600 truncate">Dias Permitidos</p>
+                  <p className="text-xs sm:text-sm font-medium text-gray-900">
                     {systemConfig.allowedDays.map(day => getDayName(day).slice(0, 3)).join(', ')}
                   </p>
                 </div>
@@ -186,7 +187,7 @@ const TransportadoraDashboard = () => {
                 <Button
                   type="submit"
                   disabled={loading || userPlates.length >= maxPlates}
-                  className="bg-transport-500 hover:bg-transport-600"
+                  className="bg-transport-500 hover:bg-transport-600 w-full sm:w-auto"
                 >
                   {loading ? 'Adicionando...' : 'Adicionar'}
                 </Button>
@@ -216,28 +217,34 @@ const TransportadoraDashboard = () => {
                 <p className="text-sm">Adicione sua primeira placa acima</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {userPlates.map((plate, index) => (
                   <div
                     key={plate.id}
-                    className="p-4 bg-gray-50 rounded-lg border border-gray-200 animate-slide-up"
+                    className="p-3 sm:p-4 bg-gray-50 rounded-lg border border-gray-200 animate-slide-up"
                     style={{ animationDelay: `${index * 0.1}s` }}
                   >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-mono text-lg font-bold text-gray-900">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-mono text-base sm:text-lg font-bold text-gray-900 break-all">
                           {formatPlate(plate.number)}
                         </p>
-                        <p className="text-sm text-gray-600">
-                          Cadastrado: {plate.createdAt.toLocaleString('pt-BR')}
+                        <p className="text-xs sm:text-sm text-gray-600">
+                          Cadastrado: {plate.createdAt.toLocaleString('pt-BR', { 
+                            dateStyle: 'short', 
+                            timeStyle: 'short' 
+                          })}
                         </p>
                         {plate.scheduledDate && (
-                          <p className="text-sm text-blue-600 font-medium">
-                            Agendado: {plate.scheduledDate.toLocaleString('pt-BR')}
+                          <p className="text-xs sm:text-sm text-blue-600 font-medium">
+                            Agendado: {plate.scheduledDate.toLocaleString('pt-BR', { 
+                              dateStyle: 'short', 
+                              timeStyle: 'short' 
+                            })}
                           </p>
                         )}
                         {plate.observations && (
-                          <p className="text-xs text-gray-500 mt-1">
+                          <p className="text-xs text-gray-500 mt-1 break-words">
                             {plate.observations}
                           </p>
                         )}
@@ -246,9 +253,9 @@ const TransportadoraDashboard = () => {
                         onClick={() => handleRemovePlate(plate.id)}
                         variant="outline"
                         size="sm"
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50 flex-shrink-0"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
                       </Button>
                     </div>
                   </div>
