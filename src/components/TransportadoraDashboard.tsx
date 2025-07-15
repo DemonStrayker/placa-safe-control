@@ -152,7 +152,7 @@ const TransportadoraDashboard = () => {
               Adicionar Nova Placa
             </CardTitle>
             <CardDescription>
-              Adicione uma nova placa ao seu cadastro. Formato: ABC-1234 ou ABC1D23
+              Adicione uma nova placa ao seu cadastro. Formato: ABC1234 ou ABC1D23
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -163,13 +163,13 @@ const TransportadoraDashboard = () => {
                   id="plate"
                   value={newPlate}
                   onChange={(e) => setNewPlate(e.target.value.toUpperCase())}
-                  placeholder="Ex: ABC-1234 ou ABC1D23"
+                  placeholder="Ex: ABC1234 ou ABC1D23"
                   required
                 />
               </div>
 
               <SchedulingPicker
-                placeholder="Ex: ABC-1234 ou ABC1D23"
+                selectedDateTime={scheduledDateTime}
                 onDateTimeChange={setScheduledDateTime}
               />
               

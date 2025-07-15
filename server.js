@@ -233,11 +233,11 @@ app.post('/api/mark-plate', authenticateUser, (req, res) => {
   }
 
   // Validate plate format
-  // Formato antigo brasileiro: ABC-1234 (com hífen obrigatório)
+  // Formato antigo brasileiro: ABC1234 (sem hífen)
   // Formato Mercosul: ABC1D23 (sem hífen)
-  const plateRegex = /^[A-Z]{3}-\d{4}$|^[A-Z]{3}\d[A-Z]\d{2}$/;
+  const plateRegex = /^[A-Z]{3}\d{4}$|^[A-Z]{3}\d[A-Z]\d{2}$/;
   if (!plateRegex.test(plate_number.toUpperCase())) {
-    return res.status(400).json({ error: 'Formato de placa inválido. Use ABC-1234 (antiga) ou ABC1D23 (Mercosul)' });
+    return res.status(400).json({ error: 'Formato de placa inválido. Use ABC1234 (antiga) ou ABC1D23 (Mercosul)' });
   }
 
   // Check if plate already exists
