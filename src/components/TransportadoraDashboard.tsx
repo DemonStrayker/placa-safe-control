@@ -169,7 +169,7 @@ const TransportadoraDashboard = () => {
               </div>
 
               <SchedulingPicker
-                selectedDateTime={scheduledDateTime}
+                placeholder="Ex: ABC-1234 ou ABC1D23"
                 onDateTimeChange={setScheduledDateTime}
               />
               

@@ -176,7 +176,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Validação de formato de placa
   const validatePlateFormat = (plateNumber: string): boolean => {
+    // Formato antigo brasileiro: ABC-1234 (com hífen obrigatório)
     const oldFormat = /^[A-Z]{3}-\d{4}$/;
+    // Formato Mercosul: ABC1D23 (sem hífen)
     const newFormat = /^[A-Z]{3}\d[A-Z]\d{2}$/;
     return oldFormat.test(plateNumber) || newFormat.test(plateNumber);
   };

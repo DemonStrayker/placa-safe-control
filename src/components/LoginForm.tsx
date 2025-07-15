@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/SupabaseAuthContext';
 import { Button } from '@/components/ui/button';
@@ -90,31 +89,6 @@ const LoginForm = () => {
                 {loading ? 'Entrando...' : 'Entrar'}
               </Button>
             </form>
-
-            <div className="mt-6 p-4 bg-white/10 rounded-lg backdrop-blur-sm border border-white/20">
-              <div className="flex items-center gap-2 mb-2">
-                <AlertCircle className="w-4 h-4 text-white" />
-                <span className="text-white font-medium text-sm">Credenciais de Teste:</span>
-              </div>
-              <div className="space-y-1 text-xs text-white/80">
-                <div className="flex items-center gap-2">
-                  <Shield className="w-3 h-3" />
-                  <span>Admin: admin / admin123</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Truck className="w-3 h-3" />
-                  <span>Transportadora: transportadora1 / trans123</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Truck className="w-3 h-3" />
-                  <span>Transportadora: transportadora2 / trans456</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Shield className="w-3 h-3" />
-                  <span>Portaria: portaria / portaria123</span>
-                </div>
-              </div>
-            </div>
           </CardContent>
         </Card>
         
